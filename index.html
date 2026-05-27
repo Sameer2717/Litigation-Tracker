@@ -1663,7 +1663,7 @@ function parseAndImport(text, filename, table) {
       amount:          'total',   totalamount:'total', invoiceamount:'total', fees:'total',
       linkedmatterid:  'matterId', matterid:'matterId', matter:'matterId',
       invoicetype:     'type',    type:'type',       feetype:'type',
-      paymentstatus:   'pStatus', paymentstatus:'pStatus', status:'pStatus',
+      paymentstatus:   'pStatus', pmtstatus:'pStatus', status:'pStatus',
       paymentdate:     'pDate',   pDate:'pDate',
       remarks:         'remarks', notes:'remarks'
     },
@@ -1776,157 +1776,117 @@ function parseDate(val) {
 
 // ==================== DOWNLOAD GAS SCRIPT ====================
 function downloadGasScript() {
-  const code = `// Legal Litigation Tracker — Google Apps Script Backend
-// Paste this entire file into your Apps Script editor (Extensions → Apps Script)
-// Then deploy as Web App (Execute as: Me, Access: Anyone)
-
-const SHEET_NAME_MAP = {
-  matters:   'MATTERS',
-  hearings:  'HEARINGS',
-  invoices:  'INVOICES',
-  documents: 'DOCUMENTS',
-  notices:   'NOTICES'
-};
-
-function doPost(e) {
-  try {
-    const payload = JSON.parse(e.postData.contents);
-    const action = payload.action;
-    let result;
-
-    if (action === 'getAll') {
-      result = getAllData();
-    } else if (action === 'upsertRow') {
-      result = upsertRow(payload.table, payload.record);
-    } else if (action === 'deleteRow') {
-      result = deleteRow(payload.table, payload.record);
-    } else {
-      result = { error: 'Unknown action: ' + action };
-    }
-
-    return ContentService
-      .createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
-  } catch(err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ error: err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doGet(e) {
-  // Allow GET for simple connectivity test
-  return ContentService
-    .createTextOutput(JSON.stringify({ status: 'ok', message: 'Legal Tracker backend running' }))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-function getAllData() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const data = {};
-
-  for (const key in SHEET_NAME_MAP) {
-    const sheetName = SHEET_NAME_MAP[key];
-    let sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
-    }
-    const rows = sheet.getDataRange().getValues();
-    if (rows.length < 2) { data[key] = []; continue; }
-
-    const headers = rows[0].map(h => String(h).trim());
-    data[key] = rows.slice(1)
-      .filter(row => row.some(cell => cell !== '' && cell !== null && cell !== undefined))
-      .map(row => {
-        const obj = {};
-        headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]) : ''; });
-        return obj;
-      });
-  }
-
-  return { data };
-}
-
-function upsertRow(table, record) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetName = SHEET_NAME_MAP[table];
-  if (!sheetName) return { error: 'Unknown table: ' + table };
-
-  let sheet = ss.getSheetByName(sheetName);
-  if (!sheet) sheet = ss.insertSheet(sheetName);
-
-  const allValues = sheet.getDataRange().getValues();
-  const keys = Object.keys(record);
-
-  // If sheet is empty, write headers
-  if (allValues.length === 0 || (allValues.length === 1 && allValues[0].every(c => c === ''))) {
-    sheet.clearContents();
-    sheet.appendRow(keys);
-    sheet.appendRow(keys.map(k => record[k] || ''));
-    return { status: 'inserted' };
-  }
-
-  const headers = allValues[0].map(h => String(h).trim());
-
-  // Add any missing headers
-  keys.forEach(k => {
-    if (!headers.includes(k)) {
-      headers.push(k);
-      sheet.getRange(1, headers.length).setValue(k);
-    }
-  });
-
-  // Find existing row by id
-  const id = record.id;
-  let foundRow = -1;
-  for (let i = 1; i < allValues.length; i++) {
-    const idCol = headers.indexOf('id');
-    if (idCol >= 0 && String(allValues[i][idCol]) === id) {
-      foundRow = i + 1; // 1-indexed
-      break;
-    }
-  }
-
-  const rowData = headers.map(h => record[h] !== undefined ? record[h] : '');
-
-  if (foundRow > 0) {
-    sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
-    return { status: 'updated', row: foundRow };
-  } else {
-    sheet.appendRow(rowData);
-    return { status: 'inserted' };
-  }
-}
-
-function deleteRow(table, record) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheetName = SHEET_NAME_MAP[table];
-  if (!sheetName) return { error: 'Unknown table: ' + table };
-
-  const sheet = ss.getSheetByName(sheetName);
-  if (!sheet) return { error: 'Sheet not found' };
-
-  const allValues = sheet.getDataRange().getValues();
-  if (allValues.length < 2) return { status: 'not_found' };
-
-  const headers = allValues[0].map(h => String(h).trim());
-  const idCol = headers.indexOf('id');
-  if (idCol < 0) return { error: 'No id column' };
-
-  const id = record.id;
-  for (let i = allValues.length - 1; i >= 1; i--) {
-    if (String(allValues[i][idCol]) === id) {
-      sheet.deleteRow(i + 1);
-      return { status: 'deleted', row: i + 1 };
-    }
-  }
-
-  return { status: 'not_found' };
-}
-`;
-
-  const blob = new Blob([code], { type: 'text/plain' });
-  const a = document.createElement('a');
+  var lines = [
+    "// Legal Litigation Tracker — Google Apps Script Backend",
+    "// Paste this entire file into your Apps Script editor (Extensions → Apps Script)",
+    "// Then deploy as Web App (Execute as: Me, Access: Anyone)",
+    "",
+    "var SHEET_NAME_MAP = {",
+    "  matters:   'MATTERS',",
+    "  hearings:  'HEARINGS',",
+    "  invoices:  'INVOICES',",
+    "  documents: 'DOCUMENTS',",
+    "  notices:   'NOTICES'",
+    "};",
+    "",
+    "function doPost(e) {",
+    "  try {",
+    "    var payload = JSON.parse(e.postData.contents);",
+    "    var action = payload.action;",
+    "    var result;",
+    "    if (action === 'getAll') { result = getAllData(); }",
+    "    else if (action === 'upsertRow') { result = upsertRow(payload.table, payload.record); }",
+    "    else if (action === 'deleteRow') { result = deleteRow(payload.table, payload.record); }",
+    "    else { result = { error: 'Unknown action: ' + action }; }",
+    "    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);",
+    "  } catch(err) {",
+    "    return ContentService.createTextOutput(JSON.stringify({ error: err.toString() })).setMimeType(ContentService.MimeType.JSON);",
+    "  }",
+    "}",
+    "",
+    "function doGet(e) {",
+    "  return ContentService.createTextOutput(JSON.stringify({ status: 'ok', message: 'Legal Tracker backend running' })).setMimeType(ContentService.MimeType.JSON);",
+    "}",
+    "",
+    "function getAllData() {",
+    "  var ss = SpreadsheetApp.getActiveSpreadsheet();",
+    "  var data = {};",
+    "  for (var key in SHEET_NAME_MAP) {",
+    "    var sheetName = SHEET_NAME_MAP[key];",
+    "    var sheet = ss.getSheetByName(sheetName);",
+    "    if (!sheet) { sheet = ss.insertSheet(sheetName); }",
+    "    var rows = sheet.getDataRange().getValues();",
+    "    if (rows.length < 2) { data[key] = []; continue; }",
+    "    var headers = rows[0].map(function(h){ return String(h).trim(); });",
+    "    data[key] = rows.slice(1)",
+    "      .filter(function(row){ return row.some(function(cell){ return cell !== '' && cell !== null && cell !== undefined; }); })",
+    "      .map(function(row){",
+    "        var obj = {};",
+    "        headers.forEach(function(h, i){ obj[h] = row[i] !== undefined ? String(row[i]) : ''; });",
+    "        return obj;",
+    "      });",
+    "  }",
+    "  return { data: data };",
+    "}",
+    "",
+    "function upsertRow(table, record) {",
+    "  var ss = SpreadsheetApp.getActiveSpreadsheet();",
+    "  var sheetName = SHEET_NAME_MAP[table];",
+    "  if (!sheetName) return { error: 'Unknown table: ' + table };",
+    "  var sheet = ss.getSheetByName(sheetName);",
+    "  if (!sheet) sheet = ss.insertSheet(sheetName);",
+    "  var allValues = sheet.getDataRange().getValues();",
+    "  var keys = Object.keys(record);",
+    "  if (allValues.length === 0 || (allValues.length === 1 && allValues[0].every(function(c){ return c === ''; }))) {",
+    "    sheet.clearContents();",
+    "    sheet.appendRow(keys);",
+    "    sheet.appendRow(keys.map(function(k){ return record[k] || ''; }));",
+    "    return { status: 'inserted' };",
+    "  }",
+    "  var headers = allValues[0].map(function(h){ return String(h).trim(); });",
+    "  keys.forEach(function(k){",
+    "    if (headers.indexOf(k) === -1) {",
+    "      headers.push(k);",
+    "      sheet.getRange(1, headers.length).setValue(k);",
+    "    }",
+    "  });",
+    "  var id = record.id;",
+    "  var foundRow = -1;",
+    "  var idCol = headers.indexOf('id');",
+    "  for (var i = 1; i < allValues.length; i++) {",
+    "    if (idCol >= 0 && String(allValues[i][idCol]) === id) { foundRow = i + 1; break; }",
+    "  }",
+    "  var rowData = headers.map(function(h){ return record[h] !== undefined ? record[h] : ''; });",
+    "  if (foundRow > 0) {",
+    "    sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);",
+    "    return { status: 'updated', row: foundRow };",
+    "  } else {",
+    "    sheet.appendRow(rowData);",
+    "    return { status: 'inserted' };",
+    "  }",
+    "}",
+    "",
+    "function deleteRow(table, record) {",
+    "  var ss = SpreadsheetApp.getActiveSpreadsheet();",
+    "  var sheetName = SHEET_NAME_MAP[table];",
+    "  if (!sheetName) return { error: 'Unknown table: ' + table };",
+    "  var sheet = ss.getSheetByName(sheetName);",
+    "  if (!sheet) return { error: 'Sheet not found' };",
+    "  var allValues = sheet.getDataRange().getValues();",
+    "  if (allValues.length < 2) return { status: 'not_found' };",
+    "  var headers = allValues[0].map(function(h){ return String(h).trim(); });",
+    "  var idCol = headers.indexOf('id');",
+    "  if (idCol < 0) return { error: 'No id column' };",
+    "  var id = record.id;",
+    "  for (var i = allValues.length - 1; i >= 1; i--) {",
+    "    if (String(allValues[i][idCol]) === id) { sheet.deleteRow(i + 1); return { status: 'deleted' }; }",
+    "  }",
+    "  return { status: 'not_found' };",
+    "}"
+  ];
+  var code = lines.join('\n');
+  var blob = new Blob([code], { type: 'text/plain' });
+  var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'Code.gs';
   a.click();
