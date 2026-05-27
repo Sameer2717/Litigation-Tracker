@@ -523,6 +523,7 @@
             <option>Ongoing</option><option>Settled</option><option>Closed</option><option>Dismissed</option>
           </select>
           <button class="btn btn-primary" onclick="openModal('matter-modal')">+ Add matter</button>
+          <button class="btn" onclick="triggerImport('matters')">⬆ Import Excel / CSV</button>
         </div>
         <div class="chart-card table-wrap">
           <table id="matters-table">
@@ -545,6 +546,7 @@
             <option>Scheduled</option><option>Heard</option><option>Adjourned</option><option>Order Passed</option>
           </select>
           <button class="btn btn-primary" onclick="openModal('hearing-modal')">+ Add hearing</button>
+          <button class="btn" onclick="triggerImport('hearings')">⬆ Import Excel / CSV</button>
         </div>
         <div class="chart-card table-wrap">
           <table id="hearings-table">
@@ -567,6 +569,7 @@
             <option>Pending</option><option>Paid</option><option>Rejected</option>
           </select>
           <button class="btn btn-primary" onclick="openModal('invoice-modal')">+ Add invoice</button>
+          <button class="btn" onclick="triggerImport('invoices')">⬆ Import Excel / CSV</button>
         </div>
         <div class="chart-card table-wrap">
           <table id="invoices-table">
@@ -585,6 +588,7 @@
         <div class="module-toolbar">
           <input class="search-input" type="text" placeholder="Search documents..." oninput="filterTable('docs-table', this.value)">
           <button class="btn btn-primary" onclick="openModal('doc-modal')">+ Add document</button>
+          <button class="btn" onclick="triggerImport('documents')">⬆ Import Excel / CSV</button>
         </div>
         <div class="chart-card table-wrap">
           <table id="docs-table">
@@ -1031,7 +1035,10 @@ function renderMatters() {
       <td style="font-weight:${isUrgent(m.nextDate)?'500':'400'};color:${isUrgent(m.nextDate)?'var(--red)':'inherit'}">${fmt(m.nextDate)}</td>
       <td>${m.counsel}</td>
       <td>${statusPill(m.status)}</td>
-      <td><button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red-dim);" onclick="deleteRecord('matters','${m.id}')">✕</button></td>
+      <td style="display:flex;gap:6px;padding:10px 14px">
+        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editRecord('matters','${m.id}')">✎ Edit</button>
+        <button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red);" onclick="deleteRecord('matters','${m.id}')">✕</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -1047,7 +1054,10 @@ function renderHearings() {
       <td>${hearingStatusPill(h.status)}</td>
       <td style="max-width:200px;color:var(--text2)">${h.outcome}</td>
       <td>${fmt(h.nextDate)}</td>
-      <td><button class="btn" style="padding:4px 9px;font-size:11px;" onclick="deleteRecord('hearings','${h.id}')">✕</button></td>
+      <td style="display:flex;gap:6px;padding:10px 14px">
+        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editRecord('hearings','${h.id}')">✎ Edit</button>
+        <button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red);" onclick="deleteRecord('hearings','${h.id}')">✕</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -1064,7 +1074,10 @@ function renderInvoices() {
       <td>${invStatusPill(inv.pStatus)}</td>
       <td><span class="pill pill-blue">${inv.type}</span></td>
       <td class="mono">${inv.matterId}</td>
-      <td><button class="btn" style="padding:4px 9px;font-size:11px;" onclick="deleteRecord('invoices','${inv.id}')">✕</button></td>
+      <td style="display:flex;gap:6px;padding:10px 14px">
+        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editRecord('invoices','${inv.id}')">✎ Edit</button>
+        <button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red);" onclick="deleteRecord('invoices','${inv.id}')">✕</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -1081,7 +1094,10 @@ function renderDocuments() {
       <td>${d.by}</td>
       <td>${d.link ? `<a href="${d.link}" target="_blank" style="color:var(--blue);font-size:11.5px">Open ↗</a>` : '—'}</td>
       <td style="color:var(--text3)">${d.remarks}</td>
-      <td><button class="btn" style="padding:4px 9px;font-size:11px;" onclick="deleteRecord('documents','${d.id}')">✕</button></td>
+      <td style="display:flex;gap:6px;padding:10px 14px">
+        <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editRecord('documents','${d.id}')">✎ Edit</button>
+        <button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red);" onclick="deleteRecord('documents','${d.id}')">✕</button>
+      </td>
     </tr>`).join('');
 }
 
@@ -1107,7 +1123,8 @@ function renderNotices() {
       <div style="display:flex;gap:8px;margin-top:10px">
         ${n.docLink?`<a href="${n.docLink}" target="_blank" class="btn" style="padding:4px 9px;font-size:11px">Notice ↗</a>`:''}
         ${n.replyLink?`<a href="${n.replyLink}" target="_blank" class="btn" style="padding:4px 9px;font-size:11px">Reply ↗</a>`:''}
-        <button class="btn" style="padding:4px 9px;font-size:11px;margin-left:auto" onclick="deleteRecord('notices','${n.id}')">✕</button>
+        <button class="btn" style="padding:4px 10px;font-size:11px;margin-left:auto" onclick="editRecord('notices','${n.id}')">✎ Edit</button>
+        <button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red)" onclick="deleteRecord('notices','${n.id}')">✕</button>
       </div>
     </div>`).join('');
 }
@@ -1284,10 +1301,294 @@ function noticeStatusPill(s) {
   return `<span class="pill ${m[s]||'pill-gray'}">${s}</span>`;
 }
 
+// ==================== EDIT ====================
+let editingId = null;
+let editingTable = null;
+
+function editRecord(table, id) {
+  editingId = id;
+  editingTable = table;
+  const r = db[table].find(x => x.id === id);
+  if (!r) return;
+
+  if (table === 'matters') {
+    document.getElementById('matter-modal-title').textContent = 'Edit matter';
+    document.getElementById('m-name').value = r.name || '';
+    document.getElementById('m-opp').value = r.opp || '';
+    document.getElementById('m-court').value = r.court || '';
+    document.getElementById('m-case').value = r.caseNo || '';
+    document.getElementById('m-type').value = r.type || 'Civil';
+    document.getElementById('m-stage').value = r.stage || 'Pre-filing';
+    document.getElementById('m-next').value = r.nextDate || '';
+    document.getElementById('m-limit').value = r.limitDate || '';
+    document.getElementById('m-counsel').value = r.counsel || '';
+    document.getElementById('m-owner').value = r.owner || '';
+    document.getElementById('m-exposure').value = r.exposure || '';
+    document.getElementById('m-status').value = r.status || 'Ongoing';
+    document.getElementById('m-remarks').value = r.remarks || '';
+    openModal('matter-modal');
+  } else if (table === 'hearings') {
+    document.getElementById('h-matter').value = r.matterId || '';
+    document.getElementById('h-date').value = r.date || '';
+    document.getElementById('h-type').value = r.type || 'Initial';
+    document.getElementById('h-status').value = r.status || 'Scheduled';
+    document.getElementById('h-outcome').value = r.outcome || '';
+    document.getElementById('h-next').value = r.nextDate || '';
+    document.getElementById('h-doclink').value = r.docLink || '';
+    document.getElementById('h-by').value = r.by || '';
+    openModal('hearing-modal');
+  } else if (table === 'invoices') {
+    document.getElementById('inv-vendor').value = r.vendor || '';
+    document.getElementById('inv-bill').value = r.bill || '';
+    document.getElementById('inv-date').value = r.date || '';
+    document.getElementById('inv-base').value = r.total || '';
+    document.getElementById('inv-matter').value = r.matterId || '';
+    document.getElementById('inv-type').value = r.type || 'Counsel Fees';
+    document.getElementById('inv-pstatus').value = r.pStatus || 'Pending';
+    document.getElementById('inv-pdate').value = r.pDate || '';
+    document.getElementById('inv-remarks').value = r.remarks || '';
+    openModal('invoice-modal');
+  } else if (table === 'documents') {
+    document.getElementById('d-name').value = r.name || '';
+    document.getElementById('d-type').value = r.type || 'Other';
+    document.getElementById('d-matter').value = r.matterId || '';
+    document.getElementById('d-date').value = r.date || '';
+    document.getElementById('d-by').value = r.by || '';
+    document.getElementById('d-ver').value = r.version || '';
+    document.getElementById('d-link').value = r.link || '';
+    document.getElementById('d-remarks').value = r.remarks || '';
+    openModal('doc-modal');
+  } else if (table === 'notices') {
+    document.getElementById('n-dir').value = r.dir || 'Received';
+    document.getElementById('n-party').value = r.party || '';
+    document.getElementById('n-date').value = r.date || '';
+    document.getElementById('n-replydue').value = r.replyDue || '';
+    document.getElementById('n-matter').value = r.matterId || '';
+    document.getElementById('n-status').value = r.status || 'Pending Reply';
+    document.getElementById('n-subject').value = r.subject || '';
+    document.getElementById('n-doclink').value = r.docLink || '';
+    document.getElementById('n-replylink').value = r.replyLink || '';
+    openModal('notice-modal');
+  }
+}
+
+// Patch save functions to handle edit mode
+const _origSaveMatter = saveMatter;
+const _origSaveHearing = saveHearing;
+const _origSaveInvoice = saveInvoice;
+const _origSaveDocument = saveDocument;
+const _origSaveNotice = saveNotice;
+
+function patchSave(table, origFn) {
+  return function() {
+    if (editingTable === table && editingId) {
+      const idx = db[table].findIndex(x => x.id === editingId);
+      if (idx !== -1) { db[table].splice(idx, 1); }
+      editingId = null; editingTable = null;
+    }
+    origFn();
+  };
+}
+
+window.saveMatter = patchSave('matters', _origSaveMatter);
+window.saveHearing = patchSave('hearings', _origSaveHearing);
+window.saveInvoice = patchSave('invoices', _origSaveInvoice);
+window.saveDocument = patchSave('documents', _origSaveDocument);
+window.saveNotice = patchSave('notices', _origSaveNotice);
+
+// Reset edit state when modals close
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) { editingId = null; editingTable = null; } });
+});
+document.querySelectorAll('.close-btn').forEach(b => {
+  b.addEventListener('click', () => { editingId = null; editingTable = null; });
+});
+
+// ==================== IMPORT CSV / EXCEL ====================
+const importFileInput = document.createElement('input');
+importFileInput.type = 'file';
+importFileInput.accept = '.csv,.xlsx,.xls,.txt';
+importFileInput.style.display = 'none';
+document.body.appendChild(importFileInput);
+
+let importTarget = null;
+
+function triggerImport(table) {
+  importTarget = table;
+  importFileInput.value = '';
+  importFileInput.click();
+}
+
+importFileInput.addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      parseAndImport(e.target.result, file.name, importTarget);
+    } catch(err) {
+      alert('Could not read file. Please save your Excel as CSV (File → Save As → CSV) and try again.');
+    }
+  };
+  reader.readAsText(file);
+});
+
+function parseAndImport(text, filename, table) {
+  // Parse CSV rows
+  const lines = text.trim().split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { alert('File appears empty or has only headers. Please check and try again.'); return; }
+
+  // Parse header row — handle quoted fields
+  const headers = parseCSVRow(lines[0]).map(h => h.trim().toLowerCase().replace(/[\s_\-\/]+/g, ''));
+
+  // Column alias maps — flexible matching so any reasonable header works
+  const maps = {
+    matters: {
+      mattername:      'name',   name:'name',  casetitle:'name',  title:'name',
+      oppositeparty:   'opp',    opponent:'opp', respondent:'opp', party:'opp',
+      courttribunal:   'court',  court:'court', tribunal:'court', forum:'court',
+      casenumber:      'caseNo', caseno:'caseNo', casenum:'caseNo',
+      mattertype:      'type',   type:'type',   casetype:'type',
+      stage:           'stage',  currentstage:'stage',
+      nexthearingdate: 'nextDate', nextdate:'nextDate', nexthearing:'nextDate', nextdate:'nextDate',
+      limitationdate:  'limitDate', limitation:'limitDate',
+      counselname:     'counsel', counsel:'counsel', advocate:'counsel', lawyer:'counsel',
+      internalowner:   'owner',  owner:'owner', assignedto:'owner',
+      status:          'status',
+      financialexposure:'exposure', exposure:'exposure', claimvalue:'exposure',
+      remarks:         'remarks', notes:'remarks', summary:'remarks', orderssummary:'remarks'
+    },
+    hearings: {
+      linkedmatterid:  'matterId', matterid:'matterId', matter:'matterId', linkedmatter:'matterId',
+      hearingdate:     'date',  date:'date',
+      hearingtype:     'type',  type:'type',
+      status:          'status', hearingstatus:'status',
+      outcome:         'outcome', outcomesummary:'outcome', summary:'outcome',
+      nextdateset:     'nextDate', nextdate:'nextDate', nexthearing:'nextDate',
+      orderdoclink:    'docLink', doclink:'docLink', orderlink:'docLink',
+      updatedby:       'by',  by:'by',  updatedby:'by'
+    },
+    invoices: {
+      vendorname:      'vendor',  vendor:'vendor',  name:'vendor',  lawfirm:'vendor', firm:'vendor',
+      billno:          'bill',    bill:'bill',       billnumber:'bill', invoiceno:'bill',
+      invoicedate:     'date',    date:'date',
+      amount:          'total',   totalamount:'total', invoiceamount:'total', fees:'total',
+      linkedmatterid:  'matterId', matterid:'matterId', matter:'matterId',
+      invoicetype:     'type',    type:'type',       feetype:'type',
+      paymentstatus:   'pStatus', paymentstatus:'pStatus', status:'pStatus',
+      paymentdate:     'pDate',   pDate:'pDate',
+      remarks:         'remarks', notes:'remarks'
+    },
+    documents: {
+      documentname:    'name',    name:'name',  docname:'name',  filename:'name',
+      type:            'type',    documenttype:'type',
+      linkedmatterid:  'matterId', matterid:'matterId', matter:'matterId',
+      date:            'date',    uploaddate:'date',
+      uploadedby:      'by',      by:'by',
+      version:         'version',
+      filelink:        'link',    link:'link',  drivelink:'link', url:'link',
+      remarks:         'remarks', notes:'remarks'
+    },
+    notices: {
+      direction:       'dir',     dir:'dir',    type:'dir',
+      counterparty:    'party',   party:'party', sender:'party', recipient:'party',
+      noticedate:      'date',    date:'date',
+      replyduedate:    'replyDue', replydue:'replyDue', duedate:'replyDue',
+      linkedmatterid:  'matterId', matterid:'matterId', matter:'matterId',
+      status:          'status',
+      subject:         'subject',
+      noticedoclink:   'docLink', doclink:'docLink', noticelink:'docLink',
+      replydoclink:    'replyLink', replylink:'replyLink'
+    }
+  };
+
+  const colMap = maps[table] || {};
+  const colIndexes = {};
+  headers.forEach((h, i) => {
+    const normalized = h.replace(/[^a-z0-9]/g,'');
+    if (colMap[normalized]) colIndexes[colMap[normalized]] = i;
+  });
+
+  if (Object.keys(colIndexes).length === 0) {
+    alert(`No matching columns found for ${table}.\n\nYour file headers: ${headers.join(', ')}\n\nPlease rename your columns to match any of these:\n${Object.keys(colMap).slice(0,8).join(', ')} etc.`);
+    return;
+  }
+
+  let imported = 0, skipped = 0;
+  const rows = lines.slice(1);
+
+  rows.forEach(line => {
+    const cols = parseCSVRow(line);
+    if (cols.every(c => !c.trim())) return;
+
+    const get = field => (colIndexes[field] !== undefined ? (cols[colIndexes[field]] || '').trim() : '');
+
+    let record = { id: nextId(table==='matters'?'LM':table==='hearings'?'HR':table==='invoices'?'INV':table==='documents'?'DOC':'NTC', db[table]), created: new Date().toISOString() };
+
+    if (table === 'matters') {
+      record = { ...record, name:get('name'), opp:get('opp'), court:get('court'), caseNo:get('caseNo'), type:get('type')||'Civil', stage:get('stage')||'Pre-filing', nextDate:parseDate(get('nextDate')), limitDate:parseDate(get('limitDate')), counsel:get('counsel'), owner:get('owner'), exposure:get('exposure'), status:get('status')||'Ongoing', remarks:get('remarks') };
+      if (!record.name) { skipped++; return; }
+    } else if (table === 'hearings') {
+      record = { ...record, matterId:get('matterId'), date:parseDate(get('date')), type:get('type')||'Initial', status:get('status')||'Scheduled', outcome:get('outcome'), nextDate:parseDate(get('nextDate')), docLink:get('docLink'), by:get('by') };
+      if (!record.date) { skipped++; return; }
+    } else if (table === 'invoices') {
+      const amt = parseFloat(get('total').replace(/[^0-9.]/g,'')) || 0;
+      record = { ...record, vendor:get('vendor'), bill:get('bill'), date:parseDate(get('date')), total:amt, matterId:get('matterId'), type:get('type')||'Counsel Fees', pStatus:get('pStatus')||'Pending', pDate:parseDate(get('pDate')), remarks:get('remarks') };
+      if (!record.vendor || !record.total) { skipped++; return; }
+    } else if (table === 'documents') {
+      record = { ...record, name:get('name'), type:get('type')||'Other', matterId:get('matterId'), date:parseDate(get('date')), by:get('by'), version:get('version'), link:get('link'), remarks:get('remarks') };
+      if (!record.name) { skipped++; return; }
+    } else if (table === 'notices') {
+      record = { ...record, dir:get('dir')||'Received', party:get('party'), date:parseDate(get('date')), replyDue:parseDate(get('replyDue')), matterId:get('matterId'), status:get('status')||'Pending Reply', subject:get('subject'), docLink:get('docLink'), replyLink:get('replyLink') };
+      if (!record.party || !record.subject) { skipped++; return; }
+    }
+
+    db[table].push(record);
+    imported++;
+  });
+
+  saveDB(table);
+  if (table === 'matters') renderMatters();
+  if (table === 'hearings') renderHearings();
+  if (table === 'invoices') renderInvoices();
+  if (table === 'documents') renderDocuments();
+  if (table === 'notices') renderNotices();
+  renderDashboard();
+  alert(`Import complete!\n\n✓ ${imported} records imported\n${skipped ? `⚠ ${skipped} rows skipped (missing required fields)` : ''}`);
+}
+
+function parseCSVRow(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { if (inQ && line[i+1]==='"') { cur += '"'; i++; } else { inQ = !inQ; } }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += c; }
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseDate(val) {
+  if (!val) return '';
+  // Try standard formats: DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, MM/DD/YYYY
+  val = val.trim();
+  let d;
+  if (/^\d{2}[\/-]\d{2}[\/-]\d{4}$/.test(val)) {
+    const parts = val.split(/[\/-]/);
+    // Try DD/MM/YYYY first (Indian format)
+    d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+    if (isNaN(d)) d = new Date(`${parts[2]}-${parts[0]}-${parts[1]}`);
+  } else {
+    d = new Date(val);
+  }
+  if (!isNaN(d)) return d.toISOString().split('T')[0];
+  return val;
+}
+
 // ==================== INIT ====================
 loadDB();
 renderDashboard();
-// Set topbar button correctly on load
 document.getElementById('topbar-add-btn').onclick = () => openModal('matter-modal');
 </script>
 </body>
