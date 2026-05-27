@@ -436,6 +436,7 @@
         <div class="topbar-sub" id="topbar-sub">Live overview of your litigation portfolio</div>
       </div>
       <div class="topbar-right">
+        <span id="sync-indicator" style="font-size:12px;color:var(--text3);padding:6px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">Connecting...</span>
         <button class="btn" onclick="exportCSV()">
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export CSV
@@ -617,44 +618,88 @@
 
       <!-- GOOGLE SHEETS SETUP PANEL -->
       <div id="panel-gssetup" class="panel">
-        <div class="charts-grid" style="margin-bottom:14px">
-          <div class="chart-card">
-            <div class="chart-title" style="font-size:14px;color:var(--text)">Export your data to Google Sheets</div>
-            <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">Click the buttons below to download each CSV file. Then import them into Google Sheets. Your Looker Studio dashboard will be live and auto-updating from that point on.</p>
-            <div style="display:flex;flex-direction:column;gap:10px">
-              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('matters')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download MATTERS.csv</button>
-              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('hearings')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download HEARINGS.csv</button>
-              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('invoices')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download INVOICES.csv</button>
-              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('notices')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download NOTICES.csv</button>
-              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('documents')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download DOCUMENTS.csv</button>
+        <div style="max-width:720px">
+
+          <!-- Connection card -->
+          <div class="chart-card" style="margin-bottom:14px">
+            <div class="chart-title" style="font-size:14px;color:var(--text);margin-bottom:16px">Step 1 — Connect to Google Sheets (one-time setup)</div>
+            <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+              <div style="flex:1;min-width:260px">
+                <label class="form-label" style="display:block;margin-bottom:5px;font-size:12px">Your Google Apps Script URL</label>
+                <input class="form-input" id="gas-url-input" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" style="width:100%">
+              </div>
+              <button class="btn btn-primary" onclick="setGasUrl(document.getElementById('gas-url-input').value)" style="height:36px;white-space:nowrap">Connect &amp; Sync</button>
+            </div>
+            <div style="margin-top:10px;font-size:12px;color:var(--text3)" id="gas-conn-status">Not connected — follow Step 2 below to get your URL.</div>
+            <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn" onclick="loadFromSheet().then(()=>{renderDashboard()})">↻ Refresh now</button>
+              <button class="btn" onclick="if(confirm('Disconnect and clear URL?')){GAS_URL='';localStorage.removeItem('lt_gas_url');setSyncStatus('nourl');}">Disconnect</button>
             </div>
           </div>
-          <div class="chart-card">
-            <div class="chart-title" style="font-size:14px;color:var(--text)">3-step setup instructions</div>
-            <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+
+          <!-- Step by step -->
+          <div class="chart-card" style="margin-bottom:14px">
+            <div class="chart-title" style="font-size:14px;color:var(--text);margin-bottom:16px">Step 2 — Set up Google Apps Script (do this once, takes 10 minutes)</div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+
               <div style="display:flex;gap:12px;align-items:flex-start">
-                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600">1</div>
-                <div>
-                  <div style="font-size:13px;font-weight:500;margin-bottom:3px">Create your Google Sheet</div>
-                  <div style="font-size:12px;color:var(--text3);line-height:1.6">Go to sheets.google.com → Blank spreadsheet. Create 5 tabs and name them: MATTERS, HEARINGS, INVOICES, DOCUMENTS, NOTICES. Import each downloaded CSV into its tab (File → Import → Upload).</div>
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600;flex-shrink:0">1</div>
+                <div style="font-size:12.5px;line-height:1.7">
+                  Go to <strong>sheets.google.com</strong> → create a new blank spreadsheet → name it <strong>Legal Litigation Tracker</strong>. Create 5 tabs at the bottom and name them exactly: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">MATTERS</code> <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">HEARINGS</code> <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">INVOICES</code> <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">DOCUMENTS</code> <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">NOTICES</code>
                 </div>
               </div>
+
               <div style="display:flex;gap:12px;align-items:flex-start">
-                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600">2</div>
-                <div>
-                  <div style="font-size:13px;font-weight:500;margin-bottom:3px">Connect Looker Studio</div>
-                  <div style="font-size:12px;color:var(--text3);line-height:1.6">Go to lookerstudio.google.com → Create → Report → Add data → Google Sheets → select your file. Add charts as shown in the setup guide. Share the report link with your team.</div>
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600;flex-shrink:0">2</div>
+                <div style="font-size:12.5px;line-height:1.7">
+                  In your Google Sheet, click <strong>Extensions → Apps Script</strong>. A new tab opens with a code editor. Delete all the existing code in it.
                 </div>
               </div>
+
               <div style="display:flex;gap:12px;align-items:flex-start">
-                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600">3</div>
-                <div>
-                  <div style="font-size:13px;font-weight:500;margin-bottom:3px">Use this tool for daily entry</div>
-                  <div style="font-size:12px;color:var(--text3);line-height:1.6">Add all data here (matters, hearings, invoices). When ready to sync, download the CSVs again and paste the new rows into your Google Sheet. Looker Studio updates automatically.</div>
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600;flex-shrink:0">3</div>
+                <div style="font-size:12.5px;line-height:1.7;width:100%">
+                  <div style="margin-bottom:6px">Download the Apps Script file below and copy its entire contents. Paste it into the Apps Script editor. Click <strong>Save</strong> (floppy disk icon).</div>
+                  <button class="btn btn-primary" onclick="downloadGasScript()" style="font-size:12px">⬇ Download Code.gs (Apps Script file)</button>
                 </div>
               </div>
+
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600;flex-shrink:0">4</div>
+                <div style="font-size:12.5px;line-height:1.7">
+                  Click <strong>Deploy → New deployment</strong>. In the dialog: set Type = <strong>Web app</strong>, Execute as = <strong>Me</strong>, Who has access = <strong>Anyone</strong>. Click <strong>Deploy</strong>. Google will ask you to authorise — click Allow.
+                </div>
+              </div>
+
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600;flex-shrink:0">5</div>
+                <div style="font-size:12.5px;line-height:1.7">
+                  After deployment, Google shows you a <strong>Web app URL</strong> — it looks like <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">https://script.google.com/macros/s/LONG_ID/exec</code>. Copy that URL. Paste it into the box in Step 1 above and click <strong>Connect &amp; Sync</strong>.
+                </div>
+              </div>
+
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="min-width:26px;height:26px;background:var(--teal-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--teal);font-size:12px;font-weight:600;flex-shrink:0">✓</div>
+                <div style="font-size:12.5px;line-height:1.7;color:var(--teal)">
+                  Done. The sync indicator at the top will turn green and say "Live — shared". From this point every record added by anyone on your team saves to the Google Sheet and appears on everyone's screen within 30 seconds automatically.
+                </div>
+              </div>
+
             </div>
           </div>
+
+          <!-- Export CSV -->
+          <div class="chart-card">
+            <div class="chart-title" style="font-size:14px;color:var(--text);margin-bottom:12px">Export / backup your data</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <button class="btn" onclick="downloadSheet('matters')">⬇ MATTERS.csv</button>
+              <button class="btn" onclick="downloadSheet('hearings')">⬇ HEARINGS.csv</button>
+              <button class="btn" onclick="downloadSheet('invoices')">⬇ INVOICES.csv</button>
+              <button class="btn" onclick="downloadSheet('documents')">⬇ DOCUMENTS.csv</button>
+              <button class="btn" onclick="downloadSheet('notices')">⬇ NOTICES.csv</button>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -833,24 +878,120 @@
 </div>
 
 <script>
+// ==================== CONFIG ====================
+// PASTE YOUR APPS SCRIPT URL HERE AFTER DEPLOYMENT
+let GAS_URL = localStorage.getItem('lt_gas_url') || '';
+
 // ==================== DATA STORE ====================
-let db = {
-  matters: [],
-  hearings: [],
-  invoices: [],
-  documents: [],
-  notices: []
-};
+let db = { matters:[], hearings:[], invoices:[], documents:[], notices:[] };
+let syncStatus = 'idle'; // idle | syncing | online | offline
 
 const KEYS = { matters:'lt_matters', hearings:'lt_hearings', invoices:'lt_invoices', documents:'lt_documents', notices:'lt_notices' };
 
-function loadDB() {
+// Save to localStorage cache
+function cacheDB(table) {
+  localStorage.setItem(KEYS[table], JSON.stringify(db[table]));
+}
+
+// Load from localStorage cache (fallback when offline)
+function loadCache() {
   for (const k in KEYS) {
     try { db[k] = JSON.parse(localStorage.getItem(KEYS[k])) || []; } catch(e) { db[k] = []; }
   }
 }
-function saveDB(table) {
-  localStorage.setItem(KEYS[table], JSON.stringify(db[table]));
+
+// Legacy alias used by old code paths
+function saveDB(table) { cacheDB(table); }
+
+// ==================== SYNC ENGINE ====================
+function setSyncStatus(status, msg) {
+  syncStatus = status;
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  const map = {
+    idle:    { dot:'#9096b0', text:'Not connected' },
+    syncing: { dot:'#d97706', text:'Syncing...' },
+    online:  { dot:'#16a34a', text:'Live — shared' },
+    offline: { dot:'#dc2626', text:'Offline — local only' },
+    nourl:   { dot:'#9096b0', text:'Setup required' }
+  };
+  const s = map[status] || map.idle;
+  el.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.dot};margin-right:6px;vertical-align:middle"></span>${msg||s.text}`;
+}
+
+async function gasRequest(action, payload) {
+  if (!GAS_URL) { setSyncStatus('nourl'); return null; }
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action, ...payload })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    setSyncStatus('online');
+    return data;
+  } catch(e) {
+    setSyncStatus('offline', 'Offline — using local cache');
+    return null;
+  }
+}
+
+// Load ALL data from Google Sheet
+async function loadFromSheet() {
+  if (!GAS_URL) { loadCache(); setSyncStatus('nourl','Paste your Script URL to go live'); return; }
+  setSyncStatus('syncing','Loading from Google Sheet...');
+  const res = await gasRequest('getAll', {});
+  if (res && res.data) {
+    db = res.data;
+    for (const k in KEYS) cacheDB(k); // update local cache
+    setSyncStatus('online','Live — all changes shared');
+  } else {
+    loadCache();
+    setSyncStatus('offline','Could not reach Sheet — using local cache');
+  }
+}
+
+// Save one record to Google Sheet
+async function saveToSheet(table, record, isDelete) {
+  cacheDB(table); // always update local cache immediately
+  const action = isDelete ? 'deleteRow' : 'upsertRow';
+  await gasRequest(action, { table, record });
+}
+
+// Auto-refresh every 30 seconds so team changes appear
+let autoRefreshInterval = null;
+function startAutoRefresh() {
+  if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+  if (!GAS_URL) return;
+  autoRefreshInterval = setInterval(async () => {
+    const res = await gasRequest('getAll', {});
+    if (res && res.data) {
+      db = res.data;
+      for (const k in KEYS) cacheDB(k);
+      // Re-render whatever panel is active
+      const active = document.querySelector('.panel.active');
+      if (active) {
+        const name = active.id.replace('panel-','');
+        if (name === 'dashboard') renderDashboard();
+        if (name === 'matters') renderMatters();
+        if (name === 'hearings') renderHearings();
+        if (name === 'invoices') renderInvoices();
+        if (name === 'documents') renderDocuments();
+        if (name === 'notices') renderNotices();
+      }
+    }
+  }, 30000);
+}
+
+function setGasUrl(url) {
+  GAS_URL = url.trim();
+  localStorage.setItem('lt_gas_url', GAS_URL);
+  document.getElementById('gas-url-input').value = GAS_URL;
+  loadFromSheet().then(() => {
+    renderDashboard();
+    startAutoRefresh();
+  });
 }
 
 // ==================== IDs ====================
@@ -934,7 +1075,7 @@ function saveMatter() {
   };
   if (!m.name || !m.opp || !m.court) { alert('Matter name, opposite party, and court are required.'); return; }
   db.matters.push(m);
-  saveDB('matters');
+  saveToSheet('matters', m);
   closeModal('matter-modal');
   clearForm(['m-name','m-opp','m-court','m-case','m-next','m-limit','m-counsel','m-owner','m-exposure','m-remarks']);
   renderMatters();
@@ -952,9 +1093,9 @@ function saveHearing() {
   };
   if (!h.matterId || !h.date) { alert('Matter ID and hearing date are required.'); return; }
   db.hearings.push(h);
-  saveDB('hearings');
+  saveToSheet('hearings', h);
   const matter = db.matters.find(m => m.id === h.matterId);
-  if (matter && h.nextDate) { matter.nextDate = h.nextDate; saveDB('matters'); }
+  if (matter && h.nextDate) { matter.nextDate = h.nextDate; saveToSheet('matters', matter); }
   closeModal('hearing-modal');
   clearForm(['h-matter','h-date','h-outcome','h-next','h-doclink','h-by']);
   renderHearings();
@@ -975,7 +1116,7 @@ function saveInvoice() {
   };
   if (!inv.vendor || !inv.date || !total) { alert('Vendor, date, and amount are required.'); return; }
   db.invoices.push(inv);
-  saveDB('invoices');
+  saveToSheet('invoices', inv);
   closeModal('invoice-modal');
   clearForm(['inv-vendor','inv-bill','inv-date','inv-base','inv-matter','inv-pdate','inv-remarks']);
   document.getElementById('inv-pstatus').value = 'Pending';
@@ -996,7 +1137,7 @@ function saveDocument() {
   };
   if (!doc.name) { alert('Document name is required.'); return; }
   db.documents.push(doc);
-  saveDB('documents');
+  saveToSheet('documents', doc);
   closeModal('doc-modal');
   clearForm(['d-name','d-matter','d-date','d-by','d-ver','d-link','d-remarks']);
   renderDocuments();
@@ -1014,7 +1155,7 @@ function saveNotice() {
   };
   if (!n.party || !n.date || !n.subject) { alert('Counterparty, date, and subject are required.'); return; }
   db.notices.push(n);
-  saveDB('notices');
+  saveToSheet('notices', n);
   closeModal('notice-modal');
   clearForm(['n-party','n-date','n-replydue','n-matter','n-subject','n-doclink','n-replylink']);
   renderNotices();
@@ -1028,8 +1169,9 @@ function clearForm(ids) { ids.forEach(id => { const el = document.getElementById
 // ==================== DELETE ====================
 function deleteRecord(table, id) {
   if (!confirm('Delete this record?')) return;
+  const rec = db[table].find(r => r.id === id);
   db[table] = db[table].filter(r => r.id !== id);
-  saveDB(table);
+  if (rec) saveToSheet(table, rec, true);
   if (table === 'matters') renderMatters();
   if (table === 'hearings') renderHearings();
   if (table === 'invoices') renderInvoices();
@@ -1632,10 +1774,173 @@ function parseDate(val) {
   return val;
 }
 
+// ==================== DOWNLOAD GAS SCRIPT ====================
+function downloadGasScript() {
+  const code = `// Legal Litigation Tracker — Google Apps Script Backend
+// Paste this entire file into your Apps Script editor (Extensions → Apps Script)
+// Then deploy as Web App (Execute as: Me, Access: Anyone)
+
+const SHEET_NAME_MAP = {
+  matters:   'MATTERS',
+  hearings:  'HEARINGS',
+  invoices:  'INVOICES',
+  documents: 'DOCUMENTS',
+  notices:   'NOTICES'
+};
+
+function doPost(e) {
+  try {
+    const payload = JSON.parse(e.postData.contents);
+    const action = payload.action;
+    let result;
+
+    if (action === 'getAll') {
+      result = getAllData();
+    } else if (action === 'upsertRow') {
+      result = upsertRow(payload.table, payload.record);
+    } else if (action === 'deleteRow') {
+      result = deleteRow(payload.table, payload.record);
+    } else {
+      result = { error: 'Unknown action: ' + action };
+    }
+
+    return ContentService
+      .createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch(err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ error: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  // Allow GET for simple connectivity test
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: 'ok', message: 'Legal Tracker backend running' }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getAllData() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = {};
+
+  for (const key in SHEET_NAME_MAP) {
+    const sheetName = SHEET_NAME_MAP[key];
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+    }
+    const rows = sheet.getDataRange().getValues();
+    if (rows.length < 2) { data[key] = []; continue; }
+
+    const headers = rows[0].map(h => String(h).trim());
+    data[key] = rows.slice(1)
+      .filter(row => row.some(cell => cell !== '' && cell !== null && cell !== undefined))
+      .map(row => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? String(row[i]) : ''; });
+        return obj;
+      });
+  }
+
+  return { data };
+}
+
+function upsertRow(table, record) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = SHEET_NAME_MAP[table];
+  if (!sheetName) return { error: 'Unknown table: ' + table };
+
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) sheet = ss.insertSheet(sheetName);
+
+  const allValues = sheet.getDataRange().getValues();
+  const keys = Object.keys(record);
+
+  // If sheet is empty, write headers
+  if (allValues.length === 0 || (allValues.length === 1 && allValues[0].every(c => c === ''))) {
+    sheet.clearContents();
+    sheet.appendRow(keys);
+    sheet.appendRow(keys.map(k => record[k] || ''));
+    return { status: 'inserted' };
+  }
+
+  const headers = allValues[0].map(h => String(h).trim());
+
+  // Add any missing headers
+  keys.forEach(k => {
+    if (!headers.includes(k)) {
+      headers.push(k);
+      sheet.getRange(1, headers.length).setValue(k);
+    }
+  });
+
+  // Find existing row by id
+  const id = record.id;
+  let foundRow = -1;
+  for (let i = 1; i < allValues.length; i++) {
+    const idCol = headers.indexOf('id');
+    if (idCol >= 0 && String(allValues[i][idCol]) === id) {
+      foundRow = i + 1; // 1-indexed
+      break;
+    }
+  }
+
+  const rowData = headers.map(h => record[h] !== undefined ? record[h] : '');
+
+  if (foundRow > 0) {
+    sheet.getRange(foundRow, 1, 1, rowData.length).setValues([rowData]);
+    return { status: 'updated', row: foundRow };
+  } else {
+    sheet.appendRow(rowData);
+    return { status: 'inserted' };
+  }
+}
+
+function deleteRow(table, record) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = SHEET_NAME_MAP[table];
+  if (!sheetName) return { error: 'Unknown table: ' + table };
+
+  const sheet = ss.getSheetByName(sheetName);
+  if (!sheet) return { error: 'Sheet not found' };
+
+  const allValues = sheet.getDataRange().getValues();
+  if (allValues.length < 2) return { status: 'not_found' };
+
+  const headers = allValues[0].map(h => String(h).trim());
+  const idCol = headers.indexOf('id');
+  if (idCol < 0) return { error: 'No id column' };
+
+  const id = record.id;
+  for (let i = allValues.length - 1; i >= 1; i--) {
+    if (String(allValues[i][idCol]) === id) {
+      sheet.deleteRow(i + 1);
+      return { status: 'deleted', row: i + 1 };
+    }
+  }
+
+  return { status: 'not_found' };
+}
+`;
+
+  const blob = new Blob([code], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Code.gs';
+  a.click();
+}
+
 // ==================== INIT ====================
-loadDB();
+loadCache();
 renderDashboard();
 document.getElementById('topbar-add-btn').onclick = () => openModal('matter-modal');
+// pre-fill URL input if saved
+const savedUrl = localStorage.getItem('lt_gas_url');
+if (savedUrl) document.getElementById('gas-url-input').value = savedUrl;
+// fetch from sheet async
+loadFromSheet().then(() => { renderDashboard(); startAutoRefresh(); });
 </script>
 </body>
 </html>
