@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Legal Litigation Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f5f6fa;
+    --bg2: #ffffff;
+    --bg3: #f0f1f5;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.13);
+    --text: #1a1d2e;
+    --text2: #4a5068;
+    --text3: #9096b0;
+    --blue: #2563eb;
+    --blue-dim: rgba(37,99,235,0.10);
+    --teal: #0d9488;
+    --teal-dim: rgba(13,148,136,0.10);
+    --amber: #d97706;
+    --amber-dim: rgba(217,119,6,0.10);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.10);
+    --purple: #7c3aed;
+    --purple-dim: rgba(124,58,237,0.10);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.10);
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* LAYOUT */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+
+  .sidebar-logo {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .logo-mark {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--blue); display: flex; align-items: center;
+    justify-content: center;
+  }
+  .logo-icon svg { width: 17px; height: 17px; fill: #fff; }
+  .logo-text { font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; }
+  .logo-sub { font-size: 10.5px; color: var(--text3); margin-top: 1px; }
+
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-label {
+    font-size: 10px; font-weight: 500; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--text3);
+    padding: 0 8px; margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 10px; border-radius: 8px; cursor: pointer;
+    color: var(--text2); font-size: 13px; font-weight: 400;
+    transition: all .15s; margin-bottom: 2px;
+    border: none; background: none; width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active { background: var(--blue-dim); color: var(--blue); font-weight: 500; }
+  .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.7;
+  }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .topbar {
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--bg2);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-size: 16px; font-weight: 600; letter-spacing: -.01em; }
+  .topbar-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px; font-size: 12.5px;
+    font-weight: 500; cursor: pointer; transition: all .15s;
+    border: 1px solid var(--border2); background: var(--bg3); color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .btn:hover { background: var(--bg); border-color: rgba(255,255,255,.2); }
+  .btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn-primary:hover { background: #3a7de8; border-color: #3a7de8; }
+  .btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .content { padding: 24px 28px; flex: 1; }
+
+  /* PANELS */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* KPI STRIP */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .kpi-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.teal::before { background: var(--teal); }
+  .kpi-card.amber::before { background: var(--amber); }
+  .kpi-card.red::before { background: var(--red); }
+  .kpi-card.purple::before { background: var(--purple); }
+
+  .kpi-label { font-size: 11px; color: var(--text3); font-weight: 500; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+  .kpi-val { font-size: 28px; font-weight: 600; letter-spacing: -.02em; line-height: 1; }
+  .kpi-card.blue .kpi-val { color: var(--blue); }
+  .kpi-card.teal .kpi-val { color: var(--teal); }
+  .kpi-card.amber .kpi-val { color: var(--amber); }
+  .kpi-card.red .kpi-val { color: var(--red); }
+  .kpi-card.purple .kpi-val { color: var(--purple); }
+  .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* CHARTS GRID */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 320px;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .charts-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-auto-rows: 280px;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .chart-card canvas { flex: 1; min-height: 0; }
+  .chart-title {
+    font-size: 12.5px; font-weight: 500; color: var(--text2);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 6px;
+  }
+  .chart-title-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+
+  /* HEARING LIST */
+  #hearings-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .hearing-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+  }
+  .hearing-item:last-child { border: none; padding-bottom: 0; }
+  .h-date-box {
+    min-width: 52px; text-align: center;
+    background: var(--bg3); border-radius: 8px; padding: 5px 8px;
+  }
+  .h-day { font-size: 17px; font-weight: 600; line-height: 1; color: var(--text); }
+  .h-mon { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; }
+  .h-body { flex: 1; min-width: 0; }
+  .h-name { font-size: 12.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .h-court { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .pill {
+    font-size: 10.5px; font-weight: 500; padding: 3px 9px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .pill-red { background: var(--red-dim); color: var(--red); }
+  .pill-amber { background: var(--amber-dim); color: var(--amber); }
+  .pill-blue { background: var(--blue-dim); color: var(--blue); }
+  .pill-teal { background: var(--teal-dim); color: var(--teal); }
+  .pill-gray { background: rgba(0,0,0,0.06); color: var(--text3); }
+  .pill-green { background: var(--green-dim); color: var(--green); }
+  .pill-purple { background: var(--purple-dim); color: var(--purple); }
+
+  /* DATA TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  thead tr { border-bottom: 1px solid var(--border2); }
+  th {
+    padding: 10px 14px; text-align: left;
+    font-size: 11px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: .05em;
+    white-space: nowrap;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border: none; }
+  tbody tr:hover { background: var(--bg3); }
+  .mono { font-family: 'DM Mono', monospace; font-size: 11.5px; color: var(--text3); }
+
+  /* FORM MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.65);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-lg);
+    padding: 24px 28px;
+    width: 100%; max-width: 560px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title {
+    font-size: 15px; font-weight: 600; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .close-btn {
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .close-btn:hover { color: var(--text); background: var(--bg3); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11.5px; font-weight: 500; color: var(--text2); }
+  .form-input, .form-select, .form-textarea {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 8px 12px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 13px;
+    transition: border-color .15s; width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none; border-color: var(--blue);
+  }
+  .form-textarea { resize: vertical; min-height: 70px; }
+  .form-select option { background: var(--bg3); }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title { font-size: 14px; font-weight: 600; }
+  .section-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+  /* MODULE TABS WITHIN PANELS */
+  .module-toolbar {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .search-input {
+    flex: 1; min-width: 180px;
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 7px 12px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 12.5px;
+  }
+  .search-input:focus { outline: none; border-color: var(--blue); }
+  .filter-select {
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 8px; padding: 7px 12px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 12.5px; cursor: pointer;
+  }
+  .filter-select:focus { outline: none; }
+
+  /* NOTICE / DOC CARDS */
+  .notice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px,1fr)); gap: 12px; }
+  .notice-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 18px;
+    transition: border-color .2s;
+  }
+  .notice-card:hover { border-color: var(--border2); }
+  .notice-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+  .notice-id { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); }
+  .notice-subject { font-size: 13px; font-weight: 500; margin-bottom: 6px; line-height: 1.4; }
+  .notice-meta { font-size: 11.5px; color: var(--text3); display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center; padding: 48px 24px; color: var(--text3);
+    font-size: 13px;
+  }
+  .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: .4; }
+
+  /* ALERT BANNER */
+  .alert-banner {
+    background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.2);
+    border-radius: var(--radius); padding: 10px 14px;
+    font-size: 12px; color: var(--amber); margin-bottom: 16px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar-wrap { margin-top: 6px; }
+  .progress-bar-bg { background: var(--bg3); border-radius: 4px; height: 5px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; transition: width .5s; }
+
+  @media (max-width: 900px) {
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+    .charts-grid, .charts-grid-3 { grid-template-columns: 1fr; }
+    .sidebar { width: 56px; }
+    .sidebar .nav-item span, .sidebar .nav-label, .sidebar-logo .logo-text,
+    .sidebar-logo .logo-sub, .sidebar-footer { display: none; }
+    .content { padding: 16px; }
+    .topbar { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+        </div>
+        <div>
+          <div class="logo-text">LegalTrack</div>
+          <div class="logo-sub">Litigation Suite</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Overview</div>
+      <button class="nav-item active" onclick="showPanel('dashboard', this)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Dashboard</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Modules</div>
+      <button class="nav-item" onclick="showPanel('matters', this)">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Matters</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('hearings', this)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span>Hearings</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('invoices', this)">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        <span>Invoices</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('documents', this)">
+        <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+        <span>Documents</span>
+      </button>
+      <button class="nav-item" onclick="showPanel('notices', this)">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span>Notices</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Export</div>
+      <button class="nav-item" onclick="showPanel('gssetup', this)">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span>Google Sheets</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      Last synced: just now<br>
+      All data saved locally
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
+        <div class="topbar-sub" id="topbar-sub">Live overview of your litigation portfolio</div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn" onclick="exportCSV()">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn btn-primary" id="topbar-add-btn" onclick="openAddModal()">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add matter
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD PANEL -->
+      <div id="panel-dashboard" class="panel active">
+        <div id="alert-area"></div>
+        <div class="kpi-grid">
+          <div class="kpi-card blue">
+            <div class="kpi-label">Active matters</div>
+            <div class="kpi-val" id="kpi-active">0</div>
+            <div class="kpi-sub" id="kpi-active-sub"></div>
+          </div>
+          <div class="kpi-card red">
+            <div class="kpi-label">Hearings this week</div>
+            <div class="kpi-val" id="kpi-hearings">0</div>
+            <div class="kpi-sub" id="kpi-hearings-sub"></div>
+          </div>
+          <div class="kpi-card amber">
+            <div class="kpi-label">Legal spend (YTD)</div>
+            <div class="kpi-val" id="kpi-spend">₹0</div>
+            <div class="kpi-sub" id="kpi-spend-sub"></div>
+          </div>
+          <div class="kpi-card purple">
+            <div class="kpi-label">Pending invoices</div>
+            <div class="kpi-val" id="kpi-invoices">0</div>
+            <div class="kpi-sub" id="kpi-invoices-sub"></div>
+          </div>
+          <div class="kpi-card teal">
+            <div class="kpi-label">Notices pending</div>
+            <div class="kpi-val" id="kpi-notices">0</div>
+            <div class="kpi-sub" id="kpi-notices-sub"></div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title"><div class="chart-title-dot" style="background:var(--blue)"></div>Matters by court / forum</div>
+            <canvas id="courtChart" height="180"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title"><div class="chart-title-dot" style="background:var(--amber)"></div>Upcoming hearings (next 14 days)</div>
+            <div id="hearings-list" style="padding-top:4px"></div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title"><div class="chart-title-dot" style="background:var(--teal)"></div>Monthly legal spend trend</div>
+            <canvas id="spendLine" height="170"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title"><div class="chart-title-dot" style="background:var(--purple)"></div>Expense breakdown by type</div>
+            <canvas id="spendPie" height="170"></canvas>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title"><div class="chart-title-dot" style="background:var(--red)"></div>Top 5 matters by spend</div>
+            <canvas id="matterSpend" height="170"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title"><div class="chart-title-dot" style="background:var(--green)"></div>Notices status</div>
+            <canvas id="noticeChart" height="170"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- MATTERS PANEL -->
+      <div id="panel-matters" class="panel">
+        <div class="module-toolbar">
+          <input class="search-input" type="text" placeholder="Search matters..." oninput="filterTable('matters-table', this.value)">
+          <select class="filter-select" onchange="filterByStatus('matters-table', this.value)">
+            <option value="">All statuses</option>
+            <option>Ongoing</option><option>Settled</option><option>Closed</option><option>Dismissed</option>
+          </select>
+          <button class="btn btn-primary" onclick="openModal('matter-modal')">+ Add matter</button>
+        </div>
+        <div class="chart-card table-wrap">
+          <table id="matters-table">
+            <thead><tr>
+              <th>Matter ID</th><th>Matter name</th><th>Opposite party</th>
+              <th>Court / forum</th><th>Stage</th><th>Next hearing</th>
+              <th>Counsel</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="matters-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- HEARINGS PANEL -->
+      <div id="panel-hearings" class="panel">
+        <div class="module-toolbar">
+          <input class="search-input" type="text" placeholder="Search hearings..." oninput="filterTable('hearings-table', this.value)">
+          <select class="filter-select" onchange="filterByStatus('hearings-table', this.value, 4)">
+            <option value="">All statuses</option>
+            <option>Scheduled</option><option>Heard</option><option>Adjourned</option><option>Order Passed</option>
+          </select>
+          <button class="btn btn-primary" onclick="openModal('hearing-modal')">+ Add hearing</button>
+        </div>
+        <div class="chart-card table-wrap">
+          <table id="hearings-table">
+            <thead><tr>
+              <th>Hearing ID</th><th>Matter ID</th><th>Date</th>
+              <th>Type</th><th>Status</th><th>Outcome / summary</th>
+              <th>Next date</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="hearings-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- INVOICES PANEL -->
+      <div id="panel-invoices" class="panel">
+        <div class="module-toolbar">
+          <input class="search-input" type="text" placeholder="Search invoices..." oninput="filterTable('invoices-table', this.value)">
+          <select class="filter-select" onchange="filterByStatus('invoices-table', this.value, 5)">
+            <option value="">All statuses</option>
+            <option>Pending</option><option>Paid</option><option>Rejected</option>
+          </select>
+          <button class="btn btn-primary" onclick="openModal('invoice-modal')">+ Add invoice</button>
+        </div>
+        <div class="chart-card table-wrap">
+          <table id="invoices-table">
+            <thead><tr>
+              <th>Invoice ID</th><th>Vendor</th><th>Bill no.</th>
+              <th>Date</th><th>Amount (₹)</th><th>Payment status</th>
+              <th>Type</th><th>Matter</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="invoices-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- DOCUMENTS PANEL -->
+      <div id="panel-documents" class="panel">
+        <div class="module-toolbar">
+          <input class="search-input" type="text" placeholder="Search documents..." oninput="filterTable('docs-table', this.value)">
+          <button class="btn btn-primary" onclick="openModal('doc-modal')">+ Add document</button>
+        </div>
+        <div class="chart-card table-wrap">
+          <table id="docs-table">
+            <thead><tr>
+              <th>Doc ID</th><th>Document name</th><th>Type</th>
+              <th>Matter</th><th>Date</th><th>Uploaded by</th>
+              <th>File link</th><th>Remarks</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="docs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NOTICES PANEL -->
+      <div id="panel-notices" class="panel">
+        <div class="module-toolbar">
+          <input class="search-input" type="text" placeholder="Search notices...">
+          <select class="filter-select">
+            <option value="">All</option>
+            <option>Sent</option><option>Received</option>
+          </select>
+          <button class="btn btn-primary" onclick="openModal('notice-modal')">+ Add notice</button>
+        </div>
+        <div id="notices-grid" class="notice-grid"></div>
+      </div>
+
+      <!-- GOOGLE SHEETS SETUP PANEL -->
+      <div id="panel-gssetup" class="panel">
+        <div class="charts-grid" style="margin-bottom:14px">
+          <div class="chart-card">
+            <div class="chart-title" style="font-size:14px;color:var(--text)">Export your data to Google Sheets</div>
+            <p style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:16px">Click the buttons below to download each CSV file. Then import them into Google Sheets. Your Looker Studio dashboard will be live and auto-updating from that point on.</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('matters')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download MATTERS.csv</button>
+              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('hearings')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download HEARINGS.csv</button>
+              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('invoices')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download INVOICES.csv</button>
+              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('notices')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download NOTICES.csv</button>
+              <button class="btn" style="justify-content:flex-start" onclick="downloadSheet('documents')"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download DOCUMENTS.csv</button>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title" style="font-size:14px;color:var(--text)">3-step setup instructions</div>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:4px">
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600">1</div>
+                <div>
+                  <div style="font-size:13px;font-weight:500;margin-bottom:3px">Create your Google Sheet</div>
+                  <div style="font-size:12px;color:var(--text3);line-height:1.6">Go to sheets.google.com → Blank spreadsheet. Create 5 tabs and name them: MATTERS, HEARINGS, INVOICES, DOCUMENTS, NOTICES. Import each downloaded CSV into its tab (File → Import → Upload).</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600">2</div>
+                <div>
+                  <div style="font-size:13px;font-weight:500;margin-bottom:3px">Connect Looker Studio</div>
+                  <div style="font-size:12px;color:var(--text3);line-height:1.6">Go to lookerstudio.google.com → Create → Report → Add data → Google Sheets → select your file. Add charts as shown in the setup guide. Share the report link with your team.</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start">
+                <div style="min-width:26px;height:26px;background:var(--blue-dim);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--blue);font-size:12px;font-weight:600">3</div>
+                <div>
+                  <div style="font-size:13px;font-weight:500;margin-bottom:3px">Use this tool for daily entry</div>
+                  <div style="font-size:12px;color:var(--text3);line-height:1.6">Add all data here (matters, hearings, invoices). When ready to sync, download the CSVs again and paste the new rows into your Google Sheet. Looker Studio updates automatically.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- MATTER MODAL -->
+<div id="matter-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="matter-modal-title">Add new matter</span>
+      <button class="close-btn" onclick="closeModal('matter-modal')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Matter name *</label><input class="form-input" id="m-name" placeholder="e.g. RVPN vs Company — EPC Delay"></div>
+      <div class="form-group"><label class="form-label">Opposite party *</label><input class="form-input" id="m-opp" placeholder="Full legal name"></div>
+      <div class="form-group"><label class="form-label">Court / tribunal *</label><input class="form-input" id="m-court" placeholder="e.g. Rajasthan High Court"></div>
+      <div class="form-group"><label class="form-label">Case number</label><input class="form-input" id="m-case" placeholder="Court-assigned number"></div>
+      <div class="form-group"><label class="form-label">Matter type</label>
+        <select class="form-select" id="m-type">
+          <option>Civil</option><option>Arbitration</option><option>Regulatory</option>
+          <option>Writ / Administrative</option><option>Criminal</option>
+          <option>Labour</option><option>Land Acquisition</option><option>Contract Dispute</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Stage</label>
+        <select class="form-select" id="m-stage">
+          <option>Pre-filing</option><option>Pleadings</option><option>Evidence</option>
+          <option>Arguments</option><option>Reserved</option><option>Order Received</option><option>Execution</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Next hearing date</label><input class="form-input" type="date" id="m-next"></div>
+      <div class="form-group"><label class="form-label">Limitation date</label><input class="form-input" type="date" id="m-limit"></div>
+      <div class="form-group"><label class="form-label">Counsel name</label><input class="form-input" id="m-counsel" placeholder="Law firm or advocate"></div>
+      <div class="form-group"><label class="form-label">Internal owner</label><input class="form-input" id="m-owner" placeholder="Your team member"></div>
+      <div class="form-group"><label class="form-label">Financial exposure (₹)</label><input class="form-input" type="text" inputmode="numeric" id="m-exposure" placeholder="e.g. 5000000"></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="m-status">
+          <option>Ongoing</option><option>Settled</option><option>Closed</option><option>Dismissed</option><option>Stay Granted</option>
+        </select>
+      </div>
+      <div class="form-group full"><label class="form-label">Order summary / remarks</label><textarea class="form-textarea" id="m-remarks" placeholder="Latest order, case notes..."></textarea></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('matter-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMatter()">Save matter</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEARING MODAL -->
+<div id="hearing-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add hearing record <button class="close-btn" onclick="closeModal('hearing-modal')">×</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Linked matter ID *</label><input class="form-input" id="h-matter" placeholder="e.g. LM-2025-001" list="matter-datalist"><datalist id="matter-datalist"></datalist></div>
+      <div class="form-group"><label class="form-label">Hearing date *</label><input class="form-input" type="date" id="h-date"></div>
+      <div class="form-group"><label class="form-label">Hearing type</label>
+        <select class="form-select" id="h-type">
+          <option>Initial</option><option>Arguments</option><option>Evidence</option><option>Order</option><option>Mention</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="h-status">
+          <option>Scheduled</option><option>Heard</option><option>Adjourned</option><option>Order Passed</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Next date set</label><input class="form-input" type="date" id="h-next"></div>
+      <div class="form-group"><label class="form-label">Updated by</label><input class="form-input" id="h-by" placeholder="Your name"></div>
+      <div class="form-group full"><label class="form-label">Outcome / summary</label><textarea class="form-textarea" id="h-outcome" placeholder="What was discussed or ordered..."></textarea></div>
+      <div class="form-group full"><label class="form-label">Order doc link (Google Drive URL)</label><input class="form-input" id="h-doclink" placeholder="https://drive.google.com/..."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('hearing-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveHearing()">Save hearing</button>
+    </div>
+  </div>
+</div>
+
+<!-- INVOICE MODAL -->
+<div id="invoice-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add invoice <button class="close-btn" onclick="closeModal('invoice-modal')">×</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Vendor / firm name *</label><input class="form-input" id="inv-vendor" placeholder="Law firm or arbitrator"></div>
+      <div class="form-group"><label class="form-label">Bill no.</label><input class="form-input" id="inv-bill" placeholder="Vendor's bill number"></div>
+      <div class="form-group"><label class="form-label">Invoice date *</label><input class="form-input" type="date" id="inv-date"></div>
+      <div class="form-group"><label class="form-label">Base amount (₹ pre-GST) *</label><input class="form-input" type="text" inputmode="numeric" pattern="[0-9]*" id="inv-base" placeholder="e.g. 100000" oninput="calcGST()"></div>
+      <div class="form-group"><label class="form-label">GST amount (₹ @ 18%)</label><input class="form-input" type="text" id="inv-gst" placeholder="Auto-calculated" readonly style="opacity:.6"></div>
+      <div class="form-group"><label class="form-label">Total amount (₹)</label><input class="form-input" type="text" id="inv-total" placeholder="Auto-calculated" readonly style="opacity:.6"></div>
+      <div class="form-group"><label class="form-label">Linked matter ID</label><input class="form-input" id="inv-matter" placeholder="e.g. LM-2025-001" list="matter-datalist"></div>
+      <div class="form-group"><label class="form-label">Invoice type</label>
+        <select class="form-select" id="inv-type">
+          <option>Counsel Fees</option><option>Arbitrator Fees</option><option>Misc</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Payment status</label>
+        <select class="form-select" id="inv-pstatus">
+          <option>Pending</option><option>Paid</option><option>Rejected</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Payment date</label><input class="form-input" type="date" id="inv-pdate"></div>
+      <div class="form-group full"><label class="form-label">Remarks</label><input class="form-input" id="inv-remarks" placeholder="Notes..."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('invoice-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvoice()">Save invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- DOCUMENT MODAL -->
+<div id="doc-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add document link <button class="close-btn" onclick="closeModal('doc-modal')">×</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Document name *</label><input class="form-input" id="d-name" placeholder="e.g. Writ Petition v2"></div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-select" id="d-type">
+          <option>Petition / Plaint</option><option>Court Order</option><option>Evidence</option>
+          <option>Legal Notice</option><option>Contract</option><option>Correspondence</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Linked matter ID</label><input class="form-input" id="d-matter" list="matter-datalist" placeholder="LM-2025-001"></div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="d-date"></div>
+      <div class="form-group"><label class="form-label">Uploaded by</label><input class="form-input" id="d-by" placeholder="Your name"></div>
+      <div class="form-group"><label class="form-label">Version</label><input class="form-input" id="d-ver" placeholder="v1.0"></div>
+      <div class="form-group full"><label class="form-label">Google Drive file link *</label><input class="form-input" id="d-link" placeholder="https://drive.google.com/..."></div>
+      <div class="form-group full"><label class="form-label">Remarks</label><input class="form-input" id="d-remarks" placeholder="Notes..."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('doc-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDocument()">Save document</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTICE MODAL -->
+<div id="notice-modal" class="modal-overlay">
+  <div class="modal">
+    <div class="modal-title">Add legal notice <button class="close-btn" onclick="closeModal('notice-modal')">×</button></div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Direction</label>
+        <select class="form-select" id="n-dir"><option>Received</option><option>Sent</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Counterparty *</label><input class="form-input" id="n-party" placeholder="Sender / Recipient"></div>
+      <div class="form-group"><label class="form-label">Notice date *</label><input class="form-input" type="date" id="n-date"></div>
+      <div class="form-group"><label class="form-label">Reply due date</label><input class="form-input" type="date" id="n-replydue"></div>
+      <div class="form-group"><label class="form-label">Linked matter ID</label><input class="form-input" id="n-matter" list="matter-datalist" placeholder="LM-2025-001"></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="n-status">
+          <option>Pending Reply</option><option>Replied</option><option>Sent</option><option>No Reply Required</option>
+        </select>
+      </div>
+      <div class="form-group full"><label class="form-label">Subject *</label><input class="form-input" id="n-subject" placeholder="Brief description of notice"></div>
+      <div class="form-group full"><label class="form-label">Notice document link (Drive)</label><input class="form-input" id="n-doclink" placeholder="https://drive.google.com/..."></div>
+      <div class="form-group full"><label class="form-label">Reply document link (Drive)</label><input class="form-input" id="n-replylink" placeholder="https://drive.google.com/..."></div>
+    </div>
+    <div class="form-actions">
+      <button class="btn" onclick="closeModal('notice-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNotice()">Save notice</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== DATA STORE ====================
+let db = {
+  matters: [],
+  hearings: [],
+  invoices: [],
+  documents: [],
+  notices: []
+};
+
+const KEYS = { matters:'lt_matters', hearings:'lt_hearings', invoices:'lt_invoices', documents:'lt_documents', notices:'lt_notices' };
+
+function loadDB() {
+  for (const k in KEYS) {
+    try { db[k] = JSON.parse(localStorage.getItem(KEYS[k])) || []; } catch(e) { db[k] = []; }
+  }
+}
+function saveDB(table) {
+  localStorage.setItem(KEYS[table], JSON.stringify(db[table]));
+}
+
+// ==================== IDs ====================
+function nextId(prefix, arr) {
+  const year = new Date().getFullYear();
+  const nums = arr.map(r => parseInt((r.id || '').split('-').pop())).filter(n => !isNaN(n));
+  const next = nums.length ? Math.max(...nums) + 1 : 1;
+  return `${prefix}-${year}-${String(next).padStart(3,'0')}`;
+}
+
+// ==================== NAV ====================
+const panelTitles = {
+  dashboard: ['Dashboard','Live overview of your litigation portfolio'],
+  matters: ['Matters','All litigation matters — add, edit, track'],
+  hearings: ['Hearings','Hearing records linked to matters'],
+  invoices: ['Invoices','Legal expense tracker'],
+  documents: ['Documents','Document repository with Drive links'],
+  notices: ['Legal notices','Sent and received legal notices'],
+  gssetup: ['Google Sheets export','Download data and set up free cloud sync']
+};
+
+function showPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const t = panelTitles[name] || [name, ''];
+  document.getElementById('topbar-title').textContent = t[0];
+  document.getElementById('topbar-sub').textContent = t[1];
+  const addBtn = document.getElementById('topbar-add-btn');
+  const addMap = { matters:'Add matter', hearings:'Add hearing', invoices:'Add invoice', documents:'Add document', notices:'Add notice' };
+  const modalMap = { matters:'matter-modal', hearings:'hearing-modal', invoices:'invoice-modal', documents:'doc-modal', notices:'notice-modal' };
+  if (addMap[name]) {
+    addBtn.textContent = '+ ' + addMap[name];
+    addBtn.onclick = () => openModal(modalMap[name]);
+    addBtn.style.display = '';
+  } else {
+    addBtn.style.display = 'none';
+  }
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'matters') renderMatters();
+  if (name === 'hearings') renderHearings();
+  if (name === 'invoices') renderInvoices();
+  if (name === 'documents') renderDocuments();
+  if (name === 'notices') renderNotices();
+  updateMatterDatalist();
+}
+
+function openAddModal() {
+  openModal('matter-modal');
+}
+
+// ==================== MODAL ====================
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  updateMatterDatalist();
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
+});
+
+function updateMatterDatalist() {
+  const dl = document.getElementById('matter-datalist');
+  dl.innerHTML = db.matters.map(m => `<option value="${m.id}">${m.id} — ${m.name}</option>`).join('');
+}
+
+// ==================== SAVE FUNCTIONS ====================
+function saveMatter() {
+  const m = {
+    id: nextId('LM', db.matters),
+    name: v('m-name'), opp: v('m-opp'), court: v('m-court'),
+    caseNo: v('m-case'), type: v('m-type'), stage: v('m-stage'),
+    nextDate: v('m-next'), limitDate: v('m-limit'),
+    counsel: v('m-counsel'), owner: v('m-owner'),
+    exposure: v('m-exposure') || '0',
+    status: v('m-status'), remarks: v('m-remarks'),
+    created: new Date().toISOString()
+  };
+  if (!m.name || !m.opp || !m.court) { alert('Matter name, opposite party, and court are required.'); return; }
+  db.matters.push(m);
+  saveDB('matters');
+  closeModal('matter-modal');
+  clearForm(['m-name','m-opp','m-court','m-case','m-next','m-limit','m-counsel','m-owner','m-exposure','m-remarks']);
+  renderMatters();
+  renderDashboard();
+  showPanel('matters', document.querySelector('.nav-item[onclick*="matters"]'));
+}
+
+function saveHearing() {
+  const h = {
+    id: nextId('HR', db.hearings),
+    matterId: v('h-matter'), date: v('h-date'), type: v('h-type'),
+    status: v('h-status'), outcome: v('h-outcome'), nextDate: v('h-next'),
+    docLink: v('h-doclink'), by: v('h-by'),
+    created: new Date().toISOString()
+  };
+  if (!h.matterId || !h.date) { alert('Matter ID and hearing date are required.'); return; }
+  db.hearings.push(h);
+  saveDB('hearings');
+  const matter = db.matters.find(m => m.id === h.matterId);
+  if (matter && h.nextDate) { matter.nextDate = h.nextDate; saveDB('matters'); }
+  closeModal('hearing-modal');
+  clearForm(['h-matter','h-date','h-outcome','h-next','h-doclink','h-by']);
+  renderHearings();
+  renderDashboard();
+  showPanel('hearings', document.querySelector('.nav-item[onclick*="hearings"]'));
+}
+
+function calcGST() {
+  const raw = document.getElementById('inv-base').value.replace(/[^0-9.]/g,'');
+  const base = parseFloat(raw) || 0;
+  const gst = Math.round(base * 0.18);
+  document.getElementById('inv-gst').value = '₹ ' + gst.toLocaleString('en-IN');
+  document.getElementById('inv-total').value = '₹ ' + (base + gst).toLocaleString('en-IN');
+}
+
+function saveInvoice() {
+  const base = parseFloat((v('inv-base')||'0').replace(/[^0-9.]/g,'')) || 0;
+  const gst = Math.round(base * 0.18);
+  const inv = {
+    id: nextId('INV', db.invoices),
+    vendor: v('inv-vendor'), bill: v('inv-bill'), date: v('inv-date'),
+    base, gst, total: base + gst,
+    matterId: v('inv-matter'), type: v('inv-type'),
+    pStatus: v('inv-pstatus'), pDate: v('inv-pdate'), remarks: v('inv-remarks'),
+    created: new Date().toISOString()
+  };
+  if (!inv.vendor || !inv.date || !base) { alert('Vendor, date, and amount are required.'); return; }
+  db.invoices.push(inv);
+  saveDB('invoices');
+  closeModal('invoice-modal');
+  clearForm(['inv-vendor','inv-bill','inv-date','inv-base','inv-gst','inv-total','inv-matter','inv-pdate','inv-remarks']);
+  renderInvoices();
+  renderDashboard();
+  showPanel('invoices', document.querySelector('.nav-item[onclick*="invoices"]'));
+}
+
+function saveDocument() {
+  const doc = {
+    id: nextId('DOC', db.documents),
+    name: v('d-name'), type: v('d-type'), matterId: v('d-matter'),
+    date: v('d-date'), by: v('d-by'), version: v('d-ver'),
+    link: v('d-link'), remarks: v('d-remarks'),
+    created: new Date().toISOString()
+  };
+  if (!doc.name) { alert('Document name is required.'); return; }
+  db.documents.push(doc);
+  saveDB('documents');
+  closeModal('doc-modal');
+  clearForm(['d-name','d-matter','d-date','d-by','d-ver','d-link','d-remarks']);
+  renderDocuments();
+  showPanel('documents', document.querySelector('.nav-item[onclick*="documents"]'));
+}
+
+function saveNotice() {
+  const n = {
+    id: nextId('NTC', db.notices),
+    dir: v('n-dir'), party: v('n-party'), date: v('n-date'),
+    replyDue: v('n-replydue'), matterId: v('n-matter'),
+    status: v('n-status'), subject: v('n-subject'),
+    docLink: v('n-doclink'), replyLink: v('n-replylink'),
+    created: new Date().toISOString()
+  };
+  if (!n.party || !n.date || !n.subject) { alert('Counterparty, date, and subject are required.'); return; }
+  db.notices.push(n);
+  saveDB('notices');
+  closeModal('notice-modal');
+  clearForm(['n-party','n-date','n-replydue','n-matter','n-subject','n-doclink','n-replylink']);
+  renderNotices();
+  renderDashboard();
+  showPanel('notices', document.querySelector('.nav-item[onclick*="notices"]'));
+}
+
+function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+function clearForm(ids) { ids.forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; }); }
+
+// ==================== DELETE ====================
+function deleteRecord(table, id) {
+  if (!confirm('Delete this record?')) return;
+  db[table] = db[table].filter(r => r.id !== id);
+  saveDB(table);
+  if (table === 'matters') renderMatters();
+  if (table === 'hearings') renderHearings();
+  if (table === 'invoices') renderInvoices();
+  if (table === 'documents') renderDocuments();
+  if (table === 'notices') renderNotices();
+  renderDashboard();
+}
+
+// ==================== RENDER TABLES ====================
+function renderMatters() {
+  const tbody = document.getElementById('matters-tbody');
+  if (!db.matters.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⚖</div>No matters yet. Click "+ Add matter" to start.</div></td></tr>`; return; }
+  tbody.innerHTML = db.matters.map(m => `
+    <tr>
+      <td class="mono">${m.id}</td>
+      <td style="font-weight:500;max-width:180px">${m.name}</td>
+      <td>${m.opp}</td>
+      <td>${m.court}</td>
+      <td><span class="pill pill-blue">${m.stage}</span></td>
+      <td style="font-weight:${isUrgent(m.nextDate)?'500':'400'};color:${isUrgent(m.nextDate)?'var(--red)':'inherit'}">${fmt(m.nextDate)}</td>
+      <td>${m.counsel}</td>
+      <td>${statusPill(m.status)}</td>
+      <td><button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red-dim);" onclick="deleteRecord('matters','${m.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderHearings() {
+  const tbody = document.getElementById('hearings-tbody');
+  if (!db.hearings.length) { tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📅</div>No hearings yet. Add a hearing after recording a matter.</div></td></tr>`; return; }
+  tbody.innerHTML = db.hearings.sort((a,b) => new Date(b.date)-new Date(a.date)).map(h => `
+    <tr>
+      <td class="mono">${h.id}</td>
+      <td class="mono">${h.matterId}</td>
+      <td style="font-weight:500">${fmt(h.date)}</td>
+      <td>${h.type}</td>
+      <td>${hearingStatusPill(h.status)}</td>
+      <td style="max-width:200px;color:var(--text2)">${h.outcome}</td>
+      <td>${fmt(h.nextDate)}</td>
+      <td><button class="btn" style="padding:4px 9px;font-size:11px;" onclick="deleteRecord('hearings','${h.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderInvoices() {
+  const tbody = document.getElementById('invoices-tbody');
+  if (!db.invoices.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div>No invoices yet.</div></td></tr>`; return; }
+  tbody.innerHTML = db.invoices.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(inv => `
+    <tr>
+      <td class="mono">${inv.id}</td>
+      <td style="font-weight:500">${inv.vendor}</td>
+      <td class="mono">${inv.bill}</td>
+      <td>${fmt(inv.date)}</td>
+      <td style="font-weight:500">₹${Number(inv.total).toLocaleString('en-IN')}</td>
+      <td>${invStatusPill(inv.pStatus)}</td>
+      <td><span class="pill pill-blue">${inv.type}</span></td>
+      <td class="mono">${inv.matterId}</td>
+      <td><button class="btn" style="padding:4px 9px;font-size:11px;" onclick="deleteRecord('invoices','${inv.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderDocuments() {
+  const tbody = document.getElementById('docs-tbody');
+  if (!db.documents.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📁</div>No documents yet. Add a Google Drive link.</div></td></tr>`; return; }
+  tbody.innerHTML = db.documents.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(d => `
+    <tr>
+      <td class="mono">${d.id}</td>
+      <td style="font-weight:500">${d.name}</td>
+      <td><span class="pill pill-purple">${d.type}</span></td>
+      <td class="mono">${d.matterId}</td>
+      <td>${fmt(d.date)}</td>
+      <td>${d.by}</td>
+      <td>${d.link ? `<a href="${d.link}" target="_blank" style="color:var(--blue);font-size:11.5px">Open ↗</a>` : '—'}</td>
+      <td style="color:var(--text3)">${d.remarks}</td>
+      <td><button class="btn" style="padding:4px 9px;font-size:11px;" onclick="deleteRecord('documents','${d.id}')">✕</button></td>
+    </tr>`).join('');
+}
+
+function renderNotices() {
+  const grid = document.getElementById('notices-grid');
+  if (!db.notices.length) { grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">✉</div>No notices yet.</div>`; return; }
+  grid.innerHTML = db.notices.map(n => `
+    <div class="notice-card">
+      <div class="notice-card-header">
+        <div class="notice-id">${n.id}</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="pill ${n.dir==='Received'?'pill-red':'pill-teal'}">${n.dir}</span>
+          ${noticeStatusPill(n.status)}
+        </div>
+      </div>
+      <div class="notice-subject">${n.subject}</div>
+      <div class="notice-meta">
+        <span>From/To: ${n.party}</span>
+        <span>${fmt(n.date)}</span>
+        ${n.matterId?`<span class="mono">${n.matterId}</span>`:''}
+        ${n.replyDue?`<span style="color:var(--amber)">Reply by: ${fmt(n.replyDue)}</span>`:''}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        ${n.docLink?`<a href="${n.docLink}" target="_blank" class="btn" style="padding:4px 9px;font-size:11px">Notice ↗</a>`:''}
+        ${n.replyLink?`<a href="${n.replyLink}" target="_blank" class="btn" style="padding:4px 9px;font-size:11px">Reply ↗</a>`:''}
+        <button class="btn" style="padding:4px 9px;font-size:11px;margin-left:auto" onclick="deleteRecord('notices','${n.id}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+// ==================== DASHBOARD ====================
+let charts = {};
+
+function renderDashboard() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in7 = new Date(today); in7.setDate(in7.getDate()+7);
+  const activeMatters = db.matters.filter(m => m.status === 'Ongoing');
+  const thisWeek = db.hearings.filter(h => { const d = new Date(h.date); return d >= today && d <= in7; });
+  const ytdSpend = db.invoices.reduce((s,i) => s + (parseFloat(i.total)||0), 0);
+  const pendingInv = db.invoices.filter(i => i.pStatus === 'Pending');
+  const pendingNotices = db.notices.filter(n => n.status === 'Pending Reply');
+
+  document.getElementById('kpi-active').textContent = activeMatters.length;
+  document.getElementById('kpi-active-sub').textContent = `${db.matters.length} total matters`;
+  document.getElementById('kpi-hearings').textContent = thisWeek.length;
+  document.getElementById('kpi-hearings-sub').textContent = 'next 7 days';
+  document.getElementById('kpi-spend').textContent = '₹' + fmtAmt(ytdSpend);
+  document.getElementById('kpi-spend-sub').textContent = `${db.invoices.length} invoices total`;
+  document.getElementById('kpi-invoices').textContent = pendingInv.length;
+  document.getElementById('kpi-invoices-sub').textContent = '₹' + fmtAmt(pendingInv.reduce((s,i)=>s+(parseFloat(i.total)||0),0)) + ' outstanding';
+  document.getElementById('kpi-notices').textContent = pendingNotices.length;
+  document.getElementById('kpi-notices-sub').textContent = 'awaiting reply';
+
+  // Alerts
+  const alertArea = document.getElementById('alert-area');
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate()+1);
+  const tmHearings = db.hearings.filter(h => { const d = new Date(h.date); d.setHours(0,0,0,0); return d.getTime()===tomorrow.getTime(); });
+  alertArea.innerHTML = tmHearings.length ? `<div class="alert-banner">⚠ ${tmHearings.length} hearing(s) tomorrow: ${tmHearings.map(h=>h.matterId).join(', ')}</div>` : '';
+
+  // Upcoming hearings list
+  const upNext = db.hearings.filter(h => { const d = new Date(h.date); return d >= today; }).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,6);
+  const hList = document.getElementById('hearings-list');
+  if (!upNext.length) { hList.innerHTML = `<div style="color:var(--text3);font-size:12.5px;padding:12px 0">No upcoming hearings.</div>`; }
+  else {
+    hList.innerHTML = upNext.map(h => {
+      const d = new Date(h.date); const diff = Math.round((d-today)/86400000);
+      const matter = db.matters.find(m=>m.id===h.matterId);
+      const pillClass = diff===0?'pill-red':diff===1?'pill-red':diff<=3?'pill-amber':diff<=7?'pill-blue':'pill-gray';
+      const pillText = diff===0?'Today':diff===1?'Tomorrow':diff+' days';
+      return `<div class="hearing-item">
+        <div class="h-date-box"><div class="h-day">${d.getDate()}</div><div class="h-mon">${d.toLocaleString('en',{month:'short'})}</div></div>
+        <div class="h-body"><div class="h-name">${matter?matter.name:h.matterId}</div><div class="h-court">${matter?matter.court:''}</div></div>
+        <span class="pill ${pillClass}">${pillText}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Court chart
+  const courtCounts = {};
+  db.matters.forEach(m => { if(m.status==='Ongoing') courtCounts[m.court] = (courtCounts[m.court]||0)+1; });
+  const cLabels = Object.keys(courtCounts).slice(0,7);
+  const cData = cLabels.map(c => courtCounts[c]);
+  rebuildChart('courtChart','bar',{
+    labels: cLabels.length ? cLabels : ['No data'],
+    datasets:[{data: cData.length ? cData : [0], backgroundColor:['#2563eb','#0d9488','#d97706','#dc2626','#7c3aed','#16a34a','#ea580c'], borderRadius:5, borderSkipped:false}]
+  },{plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9096b0',font:{size:10}}},x:{grid:{display:false},ticks:{color:'#9096b0',font:{size:10}}}}});
+
+  // Spend line chart
+  const monthSpend = {};
+  for (let i=5; i>=0; i--) { const d=new Date(); d.setMonth(d.getMonth()-i); const k=d.toLocaleString('en',{month:'short'}); monthSpend[k]=0; }
+  db.invoices.forEach(inv => { if(inv.date){ const d=new Date(inv.date); const k=d.toLocaleString('en',{month:'short'}); if(k in monthSpend) monthSpend[k]+=(parseFloat(inv.total)||0); }});
+  const mLabels = Object.keys(monthSpend);
+  const mData = mLabels.map(k => Math.round(monthSpend[k]/100000*100)/100);
+  rebuildChart('spendLine','line',{
+    labels: mLabels,
+    datasets:[{data:mData,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.07)',tension:.35,fill:true,pointRadius:4,pointBackgroundColor:'#2563eb',borderWidth:2}]
+  },{plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9096b0',font:{size:10},callback:v=>'₹'+v+'L'}},x:{grid:{display:false},ticks:{color:'#9096b0',font:{size:10}}}}});
+
+  // Spend pie
+  const counsel = db.invoices.filter(i=>i.type==='Counsel Fees').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+  const arb = db.invoices.filter(i=>i.type==='Arbitrator Fees').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+  const misc = db.invoices.filter(i=>i.type==='Misc').reduce((s,i)=>s+(parseFloat(i.total)||0),0);
+  rebuildChart('spendPie','doughnut',{
+    labels:['Counsel fees','Arbitrator fees','Misc'],
+    datasets:[{data:[counsel,arb,misc],backgroundColor:['#2563eb','#d97706','#0d9488'],borderWidth:0,hoverOffset:4}]
+  },{cutout:'62%',plugins:{legend:{position:'bottom',labels:{color:'#4a5068',boxWidth:10,padding:12,font:{size:11}}}}});
+
+  // Matter spend
+  const mSpend = {};
+  db.invoices.forEach(i => { if(i.matterId) mSpend[i.matterId]=(mSpend[i.matterId]||0)+(parseFloat(i.total)||0); });
+  const mSorted = Object.entries(mSpend).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  rebuildChart('matterSpend','bar',{
+    labels: mSorted.length ? mSorted.map(e=>e[0]) : ['No data'],
+    datasets:[{data:mSorted.length?mSorted.map(e=>Math.round(e[1]/100000*100)/100):[0],backgroundColor:['#dc2626','#d97706','#2563eb','#0d9488','#7c3aed'],borderRadius:5,borderSkipped:false}]
+  },{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(0,0,0,0.05)'},ticks:{color:'#9096b0',font:{size:10},callback:v=>'₹'+v+'L'}},y:{grid:{display:false},ticks:{color:'#9096b0',font:{size:10}}}}});
+
+  // Notice chart
+  const nReplied = db.notices.filter(n=>n.status==='Replied').length;
+  const nPending = db.notices.filter(n=>n.status==='Pending Reply').length;
+  const nSent = db.notices.filter(n=>n.status==='Sent').length;
+  const nNone = db.notices.filter(n=>n.status==='No Reply Required').length;
+  rebuildChart('noticeChart','pie',{
+    labels:['Replied','Pending reply','Sent','No reply needed'],
+    datasets:[{data:[nReplied,nPending,nSent,nNone],backgroundColor:['#16a34a','#dc2626','#2563eb','#9096b0'],borderWidth:0,hoverOffset:4}]
+  },{plugins:{legend:{position:'bottom',labels:{color:'#4a5068',boxWidth:10,padding:10,font:{size:11}}}}});
+}
+
+function rebuildChart(id, type, data, options) {
+  if (charts[id]) { charts[id].destroy(); }
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type, data,
+    options: { responsive:true, maintainAspectRatio:false, animation:{duration:400}, ...options }
+  });
+}
+
+// ==================== FILTER / SEARCH ====================
+function filterTable(tableId, query) {
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  const q = query.toLowerCase();
+  rows.forEach(r => { r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none'; });
+}
+function filterByStatus(tableId, val, colIdx) {
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  rows.forEach(r => {
+    if (!val) { r.style.display = ''; return; }
+    const cell = r.cells[colIdx||7];
+    r.style.display = (cell && cell.textContent.includes(val)) ? '' : 'none';
+  });
+}
+
+// ==================== EXPORT CSV ====================
+function downloadSheet(table) {
+  const headers = {
+    matters: 'MatterID,MatterName,OppositeParty,CourtTribunal,CaseNumber,MatterType,Stage,NextHearingDate,LimitationDate,Counsel,InternalOwner,Status,FinancialExposure,Remarks',
+    hearings: 'HearingID,LinkedMatterID,HearingDate,HearingType,Status,Outcome,NextDateSet,OrderDocLink,UpdatedBy',
+    invoices: 'InvoiceID,VendorName,BillNo,InvoiceDate,BaseAmount,GSTAmount,TotalAmount,LinkedMatterID,InvoiceType,PaymentStatus,PaymentDate,Remarks',
+    documents: 'DocumentID,DocumentName,Type,LinkedMatterID,Date,UploadedBy,Version,FileLink,Remarks',
+    notices: 'NoticeID,Direction,Counterparty,NoticeDate,ReplyDueDate,LinkedMatterID,Status,Subject,NoticeDocLink,ReplyDocLink'
+  };
+  const rowFns = {
+    matters: m => [m.id,m.name,m.opp,m.court,m.caseNo,m.type,m.stage,m.nextDate,m.limitDate,m.counsel,m.owner,m.status,m.exposure,m.remarks],
+    hearings: h => [h.id,h.matterId,h.date,h.type,h.status,h.outcome,h.nextDate,h.docLink,h.by],
+    invoices: i => [i.id,i.vendor,i.bill,i.date,i.base,i.gst,i.total,i.matterId,i.type,i.pStatus,i.pDate,i.remarks],
+    documents: d => [d.id,d.name,d.type,d.matterId,d.date,d.by,d.version,d.link,d.remarks],
+    notices: n => [n.id,n.dir,n.party,n.date,n.replyDue,n.matterId,n.status,n.subject,n.docLink,n.replyLink]
+  };
+  const csv = [headers[table], ...db[table].map(r => rowFns[table](r).map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = table.toUpperCase() + '.csv';
+  a.click();
+}
+
+function exportCSV() {
+  const panel = document.querySelector('.panel.active').id.replace('panel-','');
+  const map = { dashboard:'matters', matters:'matters', hearings:'hearings', invoices:'invoices', documents:'documents', notices:'notices' };
+  downloadSheet(map[panel] || 'matters');
+}
+
+// ==================== HELPERS ====================
+function fmt(d) { if(!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); } catch(e){return d;} }
+function fmtAmt(n) { if(n>=100000) return (Math.round(n/100000*10)/10)+'L'; if(n>=1000) return (Math.round(n/1000))+'K'; return n.toLocaleString('en-IN'); }
+function isUrgent(d) { if(!d) return false; const diff=(new Date(d)-new Date())/86400000; return diff>=0 && diff<=3; }
+function statusPill(s) {
+  const m = {Ongoing:'pill-blue',Settled:'pill-teal',Closed:'pill-gray',Dismissed:'pill-gray','Stay Granted':'pill-amber'};
+  return `<span class="pill ${m[s]||'pill-gray'}">${s}</span>`;
+}
+function hearingStatusPill(s) {
+  const m = {Scheduled:'pill-blue',Heard:'pill-teal',Adjourned:'pill-amber','Order Passed':'pill-green'};
+  return `<span class="pill ${m[s]||'pill-gray'}">${s}</span>`;
+}
+function invStatusPill(s) {
+  const m = {Pending:'pill-amber',Paid:'pill-teal',Rejected:'pill-red'};
+  return `<span class="pill ${m[s]||'pill-gray'}">${s}</span>`;
+}
+function noticeStatusPill(s) {
+  const m = {'Pending Reply':'pill-red',Replied:'pill-teal',Sent:'pill-blue','No Reply Required':'pill-gray'};
+  return `<span class="pill ${m[s]||'pill-gray'}">${s}</span>`;
+}
+
+// ==================== INIT ====================
+loadDB();
+renderDashboard();
+// Set topbar button correctly on load
+document.getElementById('topbar-add-btn').onclick = () => openModal('matter-modal');
+</script>
+</body>
+</html>
