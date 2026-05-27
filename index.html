@@ -574,7 +574,7 @@
         <div class="chart-card table-wrap">
           <table id="invoices-table">
             <thead><tr>
-              <th>Invoice ID</th><th>Vendor</th><th>Bill no.</th>
+              <th>Sr. No.</th><th>Vendor</th><th>Bill no.</th>
               <th>Date</th><th>Amount (₹)</th><th>Payment status</th>
               <th>Type</th><th>Matter</th><th>Actions</th>
             </tr></thead>
@@ -1064,9 +1064,10 @@ function renderHearings() {
 function renderInvoices() {
   const tbody = document.getElementById('invoices-tbody');
   if (!db.invoices.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div>No invoices yet.</div></td></tr>`; return; }
-  tbody.innerHTML = db.invoices.sort((a,b)=>new Date(b.date)-new Date(a.date)).map(inv => `
+  const sorted = [...db.invoices].sort((a,b) => new Date(a.date) - new Date(b.date));
+  tbody.innerHTML = sorted.map((inv, idx) => `
     <tr>
-      <td class="mono">${inv.id}</td>
+      <td class="mono" style="text-align:center;font-weight:500">${idx + 1}</td>
       <td style="font-weight:500">${inv.vendor}</td>
       <td class="mono">${inv.bill}</td>
       <td>${fmt(inv.date)}</td>
