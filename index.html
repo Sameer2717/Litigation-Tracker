@@ -751,12 +751,25 @@
         </select>
       </div>
       <div class="form-group"><label class="form-label">Payment status</label>
-        <select class="form-select" id="inv-pstatus">
+        <select class="form-select" id="inv-pstatus" onchange="togglePendingAt(this.value)">
           <option>Pending</option><option>Paid</option><option>Rejected</option>
         </select>
       </div>
+      <div class="form-group" id="inv-pendingat-group">
+        <label class="form-label">Pending at stage</label>
+        <select class="form-select" id="inv-pendingat">
+          <option value="">— Select stage —</option>
+          <option>PR / Indent Creation</option>
+          <option>PO Creation</option>
+          <option>PO Release</option>
+          <option>SRN Creation</option>
+          <option>Accounts Processing</option>
+          <option>Management Approval</option>
+          <option>Payment Released</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Payment date</label><input class="form-input" type="date" id="inv-pdate"></div>
-      <div class="form-group full"><label class="form-label">Remarks</label><input class="form-input" id="inv-remarks" placeholder="Notes..."></div>
+      <div class="form-group full"><label class="form-label">Remarks</label><textarea class="form-textarea" id="inv-remarks" placeholder="Add notes, context, follow-up actions..." style="min-height:60px"></textarea></div>
     </div>
     <div class="form-actions">
       <button class="btn" onclick="closeModal('invoice-modal')">Cancel</button>
@@ -956,7 +969,8 @@ function saveInvoice() {
     vendor: v('inv-vendor'), bill: v('inv-bill'), date: v('inv-date'),
     total,
     matterId: v('inv-matter'), type: v('inv-type'),
-    pStatus: v('inv-pstatus'), pDate: v('inv-pdate'), remarks: v('inv-remarks'),
+    pStatus: v('inv-pstatus'), pendingAt: v('inv-pendingat'),
+    pDate: v('inv-pdate'), remarks: v('inv-remarks'),
     created: new Date().toISOString()
   };
   if (!inv.vendor || !inv.date || !total) { alert('Vendor, date, and amount are required.'); return; }
@@ -964,6 +978,9 @@ function saveInvoice() {
   saveDB('invoices');
   closeModal('invoice-modal');
   clearForm(['inv-vendor','inv-bill','inv-date','inv-base','inv-matter','inv-pdate','inv-remarks']);
+  document.getElementById('inv-pstatus').value = 'Pending';
+  document.getElementById('inv-pendingat').value = '';
+  document.getElementById('inv-pendingat-group').style.display = '';
   renderInvoices();
   renderDashboard();
   showPanel('invoices', document.querySelector('.nav-item[onclick*="invoices"]'));
@@ -1065,21 +1082,43 @@ function renderInvoices() {
   const tbody = document.getElementById('invoices-tbody');
   if (!db.invoices.length) { tbody.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">💰</div>No invoices yet.</div></td></tr>`; return; }
   const sorted = [...db.invoices].sort((a,b) => new Date(a.date) - new Date(b.date));
-  tbody.innerHTML = sorted.map((inv, idx) => `
-    <tr>
+  tbody.innerHTML = sorted.map((inv, idx) => {
+    const pendingTag = (inv.pStatus === 'Pending' && inv.pendingAt)
+      ? `<div style="font-size:10.5px;color:var(--amber);margin-top:3px">⏳ ${inv.pendingAt}</div>` : '';
+    const hasDetail = inv.remarks || inv.pendingAt || inv.pDate;
+    return `
+    <tr style="cursor:${hasDetail?'pointer':'default'}" onclick="toggleInvDetail('inv-detail-${inv.id}')">
       <td class="mono" style="text-align:center;font-weight:500">${idx + 1}</td>
       <td style="font-weight:500">${inv.vendor}</td>
       <td class="mono">${inv.bill}</td>
       <td>${fmt(inv.date)}</td>
       <td style="font-weight:500">₹${Number(inv.total).toLocaleString('en-IN')}</td>
-      <td>${invStatusPill(inv.pStatus)}</td>
+      <td>${invStatusPill(inv.pStatus)}${pendingTag}</td>
       <td><span class="pill pill-blue">${inv.type}</span></td>
       <td class="mono">${inv.matterId}</td>
-      <td style="display:flex;gap:6px;padding:10px 14px">
+      <td style="display:flex;gap:6px;padding:10px 14px" onclick="event.stopPropagation()">
         <button class="btn" style="padding:4px 10px;font-size:11px;" onclick="editRecord('invoices','${inv.id}')">✎ Edit</button>
         <button class="btn" style="padding:4px 9px;font-size:11px;color:var(--red);" onclick="deleteRecord('invoices','${inv.id}')">✕</button>
       </td>
-    </tr>`).join('');
+    </tr>
+    <tr id="inv-detail-${inv.id}" style="display:none;background:var(--bg3)">
+      <td colspan="9" style="padding:12px 20px 14px 20px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 24px;font-size:12.5px">
+          ${inv.pendingAt ? `<div><span style="color:var(--text3);font-size:11px;display:block;margin-bottom:2px">Pending at stage</span><span style="font-weight:500;color:var(--amber)">⏳ ${inv.pendingAt}</span></div>` : ''}
+          ${inv.pDate ? `<div><span style="color:var(--text3);font-size:11px;display:block;margin-bottom:2px">Payment date</span><span style="font-weight:500">${fmt(inv.pDate)}</span></div>` : ''}
+          ${inv.matterId ? `<div><span style="color:var(--text3);font-size:11px;display:block;margin-bottom:2px">Linked matter</span><span style="font-weight:500;font-family:var(--font-mono,monospace)">${inv.matterId}</span></div>` : ''}
+          ${inv.remarks ? `<div style="grid-column:1/-1"><span style="color:var(--text3);font-size:11px;display:block;margin-bottom:4px">Remarks</span><div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;line-height:1.6;color:var(--text2)">${inv.remarks.replace(/\n/g,'<br>')}</div></div>` : ''}
+          ${!inv.remarks && !inv.pendingAt && !inv.pDate ? `<div style="color:var(--text3)">No additional details recorded.</div>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleInvDetail(id) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
 }
 
 function renderDocuments() {
@@ -1252,19 +1291,23 @@ function filterByStatus(tableId, val, colIdx) {
   });
 }
 
+function togglePendingAt(val) {
+  document.getElementById('inv-pendingat-group').style.display = val === 'Paid' ? 'none' : '';
+}
+
 // ==================== EXPORT CSV ====================
 function downloadSheet(table) {
   const headers = {
     matters: 'MatterID,MatterName,OppositeParty,CourtTribunal,CaseNumber,MatterType,Stage,NextHearingDate,LimitationDate,Counsel,InternalOwner,Status,FinancialExposure,Remarks',
     hearings: 'HearingID,LinkedMatterID,HearingDate,HearingType,Status,Outcome,NextDateSet,OrderDocLink,UpdatedBy',
-    invoices: 'InvoiceID,VendorName,BillNo,InvoiceDate,Amount,LinkedMatterID,InvoiceType,PaymentStatus,PaymentDate,Remarks',
+    invoices: 'InvoiceID,VendorName,BillNo,InvoiceDate,Amount,LinkedMatterID,InvoiceType,PaymentStatus,PendingAtStage,PaymentDate,Remarks',
     documents: 'DocumentID,DocumentName,Type,LinkedMatterID,Date,UploadedBy,Version,FileLink,Remarks',
     notices: 'NoticeID,Direction,Counterparty,NoticeDate,ReplyDueDate,LinkedMatterID,Status,Subject,NoticeDocLink,ReplyDocLink'
   };
   const rowFns = {
     matters: m => [m.id,m.name,m.opp,m.court,m.caseNo,m.type,m.stage,m.nextDate,m.limitDate,m.counsel,m.owner,m.status,m.exposure,m.remarks],
     hearings: h => [h.id,h.matterId,h.date,h.type,h.status,h.outcome,h.nextDate,h.docLink,h.by],
-    invoices: i => [i.id,i.vendor,i.bill,i.date,i.total,i.matterId,i.type,i.pStatus,i.pDate,i.remarks],
+    invoices: i => [i.id,i.vendor,i.bill,i.date,i.total,i.matterId,i.type,i.pStatus,i.pendingAt||'',i.pDate,i.remarks],
     documents: d => [d.id,d.name,d.type,d.matterId,d.date,d.by,d.version,d.link,d.remarks],
     notices: n => [n.id,n.dir,n.party,n.date,n.replyDue,n.matterId,n.status,n.subject,n.docLink,n.replyLink]
   };
@@ -1346,6 +1389,8 @@ function editRecord(table, id) {
     document.getElementById('inv-matter').value = r.matterId || '';
     document.getElementById('inv-type').value = r.type || 'Counsel Fees';
     document.getElementById('inv-pstatus').value = r.pStatus || 'Pending';
+    document.getElementById('inv-pendingat').value = r.pendingAt || '';
+    document.getElementById('inv-pendingat-group').style.display = r.pStatus === 'Paid' ? 'none' : '';
     document.getElementById('inv-pdate').value = r.pDate || '';
     document.getElementById('inv-remarks').value = r.remarks || '';
     openModal('invoice-modal');
